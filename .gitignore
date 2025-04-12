@@ -35,6 +35,8 @@ ENV/
 debug_*.png
 perforated_*.png
 *.ttf
+!fonts/TimesNewRoman.ttf
+!fonts/TimesNewRoman_subset.ttf
 !fonts/Times.ttf
 !fonts/Times_subset.ttf
 !fonts/Roboto.ttf

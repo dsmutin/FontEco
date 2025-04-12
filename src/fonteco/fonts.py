@@ -46,13 +46,27 @@ def perforate_font(
 
     # Load the font into PIL for rendering
     pil_font = ImageFont.truetype(
-        input_font_path, size=400)  # Increased font size
+        input_font_path, size=400)
 
     # Get the font's character map (cmap)
     cmap = font.getBestCmap()
 
     # Track modified glyphs
     modified_glyphs = set()
+
+    # Special handling for problematic Cyrillic characters
+    cyrillic_special_cases = {
+        'uni041D': 'H',  # Н
+        'uni041F': 'P',  # П
+        'uni042D': 'E',  # Э
+        'uni042F': 'R',  # Я
+        'uni044D': 'e',  # э
+        'uni044F': 'r',  # я
+        'uni0401': 'E',  # Ё
+        'uni0451': 'e',  # ё
+        'uni0419': 'N',  # Й
+        'uni0439': 'n',  # й
+    }
 
     # Iterate over all glyphs in the font
     glyphs = font.getGlyphOrder()
@@ -101,8 +115,12 @@ def perforate_font(
                 print("Using direct text rendering")
             draw.text((50, 50), unicode_char, font=pil_font, fill=0)
         else:
-            # For composite glyphs or when direct rendering fails, try to use Latin analogue
-            if unicode_char and 0x0400 <= ord(unicode_char) <= 0x04FF:
+            # For composite glyphs or when direct rendering fails, try special cases first
+            if glyph_name in cyrillic_special_cases:
+                if debug:
+                    print(f"Using special case for {glyph_name}: {cyrillic_special_cases[glyph_name]}")
+                draw.text((50, 50), cyrillic_special_cases[glyph_name], font=pil_font, fill=0)
+            elif unicode_char and 0x0400 <= ord(unicode_char) <= 0x04FF:
                 # Map Cyrillic to Latin analogues
                 cyrillic_to_latin = {
                     0x0410: 'A', 0x0412: 'B', 0x0415: 'E', 0x0417: '3',
