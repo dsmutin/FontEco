@@ -1,3 +1,10 @@
+"""Setup configuration for the Fonteco package.
+
+Fonteco is a tool for creating perforated fonts by removing dots from glyphs
+while maintaining readability. This setup file configures the package installation
+and dependencies.
+"""
+
 from setuptools import setup, find_packages
 
 setup(

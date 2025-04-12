@@ -1,9 +1,21 @@
+"""Testing utilities for font perforation.
+
+This module provides functions for testing the font perforation process,
+including visualization of the perforation effect on sample glyphs.
+"""
+
 from PIL import Image, ImageDraw, ImageFont
 from .dithering import generate_sobol_sequence, apply_blue_noise_dithering
 
+
 def test_perforation(input_font_path, output_test_path, reduction_percentage):
     """
-    Perforate a font using Sobol' sequence and blue noise dithering.
+    Test the perforation process on a sample glyph.
+    
+    Args:
+        input_font_path (str): Path to the input font file
+        output_test_path (str): Path to save the test output image
+        reduction_percentage (float): Percentage of dots to remove (0-100)
     """
     # Create a temporary image to render the font glyphs
     image_size = (800, 800)  # Size of the image for rendering glyphs

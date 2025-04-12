@@ -1,3 +1,10 @@
+"""Fonteco - A tool for creating perforated fonts.
+
+Fonteco is a Python package that helps create perforated fonts by intelligently
+removing dots from glyphs while maintaining readability. It uses blue noise
+dithering techniques to ensure even distribution of removed dots.
+"""
+
 from .dithering import generate_sobol_sequence, apply_blue_noise_dithering
 from .testing import test_perforation
 from .glyphs import decompose_glyph, image_to_glyph

@@ -1,13 +1,20 @@
+"""Font utility functions for subsetting and manipulating fonts.
+
+This module provides functions for creating font subsets containing specific
+character sets (e.g., alphanumeric, Cyrillic) and other font manipulation
+utilities.
+"""
+
 from fontTools.subset import Subsetter
 from fontTools.ttLib import TTFont
-import re
+
 
 def subset_font_to_alphanumeric(font_path):
     """
     Subset a font to only include alphanumeric characters [a-zA-Z0-9] and space.
     
     Args:
-        font_path (str): Path to the input font file (e.g., 'fonts/Times.ttf')
+        font_path (str): Path to the input font file
         
     Returns:
         TTFont: A subsetted font containing only alphanumeric characters and space
@@ -56,13 +63,15 @@ def subset_font_to_alphanumeric(font_path):
     
     return font
 
+
 def create_subset_font(input_font_path, output_font_path, subset_function):
     """
     Create a subsetted font file containing only alphanumeric characters and space.
     
     Args:
-        input_font_path (str): Path to the input font file (e.g., 'fonts/Times.ttf')
-        output_font_path (str): Path where the subsetted font will be saved (e.g., 'fonts/Times_subset.ttf')
+        input_font_path (str): Path to the input font file
+        output_font_path (str): Path where the subsetted font will be saved
+        subset_function (callable): Function to use for subsetting
         
     Returns:
         None
@@ -77,6 +86,7 @@ def create_subset_font(input_font_path, output_font_path, subset_function):
     
     # Save the subsetted font
     subsetted_font.save(output_font_path)
+
 
 def subset_font_to_alphanumeric_and_cyrillic(font_path):
     """

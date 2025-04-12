@@ -1,6 +1,14 @@
+"""Blue noise dithering implementation for font perforation.
+
+This module implements blue noise dithering using Sobol' sequences to create
+visually pleasing patterns when removing dots from glyphs. The dithering
+process helps maintain readability while reducing ink usage.
+"""
+
 import numpy as np
 from scipy.stats import qmc
 from PIL import Image
+
 
 def generate_sobol_sequence(width, height, num_points):
     """
@@ -22,6 +30,7 @@ def generate_sobol_sequence(width, height, num_points):
     points = qmc.scale(points, [0, 0], [width, height])
     return points.astype(int)
 
+
 def apply_blue_noise_dithering(image, sobol_points):
     """
     Apply blue noise dithering by removing dots based on the Sobol' sequence.
@@ -39,7 +48,7 @@ def apply_blue_noise_dithering(image, sobol_points):
     """
     pixels = image.load()
     width, height = image.size
-    for x, y in sobol_points:
-        if 0 <= x < width and 0 <= y < height:
-            pixels[x, y] = 255  # Set pixel to white (remove dot)
+    for point_x, point_y in sobol_points:
+        if 0 <= point_x < width and 0 <= point_y < height:
+            pixels[point_x, point_y] = 255  # Set pixel to white (remove dot)
     return image 

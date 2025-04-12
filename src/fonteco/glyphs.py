@@ -1,9 +1,21 @@
+"""Glyph manipulation and conversion utilities.
+
+This module provides functions for working with font glyphs, including:
+- Decomposing composite glyphs
+- Converting images to glyph outlines
+- Generating and applying dithering patterns
+"""
+
+import numpy as np
+from PIL import Image, ImageDraw, ImageFont
+from fontTools.misc.transform import Transform
 from fontTools.pens.recordingPen import RecordingPen
 from fontTools.pens.ttGlyphPen import TTGlyphPen
-import numpy as np
+from fontTools.ttLib import TTFont
+from scipy.stats import qmc
 import cv2
 import potrace
-from PIL import Image, ImageDraw
+
 
 def decompose_glyph(glyph, glyph_set):
     """
@@ -23,20 +35,18 @@ def decompose_glyph(glyph, glyph_set):
         return pen
     return None
 
-from fontTools.misc.transform import Transform
-from fontTools.pens.recordingPen import RecordingPen
-import numpy as np
-from fontTools.ttLib import TTFont
-from scipy.stats import qmc  # For Sobol' sequence generation
-from PIL import Image, ImageDraw, ImageFont
-import potrace
-from fontTools.pens.ttGlyphPen import TTGlyphPen
-import cv2
-
 
 def generate_sobol_sequence(width, height, num_points):
     """
     Generate a Sobol' sequence of points within the given dimensions.
+    
+    Args:
+        width (int): Width of the area to generate points in
+        height (int): Height of the area to generate points in
+        num_points (int): Number of points to generate (must be a power of 2)
+        
+    Returns:
+        numpy.ndarray: Array of shape (num_points, 2) containing the generated points
     """
     sampler = qmc.Sobol(d=2, scramble=True)
     points = sampler.random_base2(m=int(np.log2(num_points)))
@@ -47,38 +57,48 @@ def generate_sobol_sequence(width, height, num_points):
 def apply_blue_noise_dithering(image, sobol_points):
     """
     Apply blue noise dithering by removing dots based on the Sobol' sequence.
+    
+    Args:
+        image (PIL.Image.Image): Input grayscale image to dither
+        sobol_points (numpy.ndarray): Array of points from Sobol' sequence
+        
+    Returns:
+        PIL.Image.Image: Dithered image with white pixels at Sobol' sequence points
     """
     pixels = image.load()
     width, height = image.size
-    for x, y in sobol_points:
-        if 0 <= x < width and 0 <= y < height:
-            pixels[x, y] = 255  # Set pixel to white (remove dot)
+    for point_x, point_y in sobol_points:
+        if 0 <= point_x < width and 0 <= point_y < height:
+            pixels[point_x, point_y] = 255  # Set pixel to white (remove dot)
     return image
 
 
 def test_perforation(input_font_path, output_test_path, reduction_percentage):
     """
-    Perforate a font using Sobol' sequence and blue noise dithering.
+    Test the perforation process on a sample glyph.
+    
+    Args:
+        input_font_path (str): Path to the input font file
+        output_test_path (str): Path to save the test output image
+        reduction_percentage (float): Percentage of dots to remove (0-100)
     """
     # Load the font
     font = TTFont(input_font_path)
 
     # Create a temporary image to render the font glyphs
-    image_size = (512, 512)  # Size of the image for rendering glyphs
+    image_size = (800, 800)  # Size of the image for rendering glyphs
     image = Image.new("L", image_size, 255)  # White background
     draw = ImageDraw.Draw(image)
 
     # Generate Sobol' sequence points
-    num_points = int(image_size[0] * image_size[1]
-                     * (reduction_percentage / 100))
-    sobol_points = generate_sobol_sequence(
-        image_size[0], image_size[1], num_points)
+    num_points = int(image_size[0] * image_size[1] * (reduction_percentage / 100))
+    sobol_points = generate_sobol_sequence(image_size[0], image_size[1], num_points)
 
     # Load the font into PIL for rendering
-    pil_font = ImageFont.truetype(input_font_path, size=500)
+    pil_font = ImageFont.truetype(input_font_path, size=600)
 
     # Render the text to get the glyphs
-    draw.text((10, 10), "A", font=pil_font, fill=0)  # Render a sample glyph
+    draw.text((10, 10), "Aa", font=pil_font, fill=0)  # Render a sample glyph
 
     # Apply blue noise dithering
     perforated_image = apply_blue_noise_dithering(image, sobol_points)
@@ -96,7 +116,7 @@ def image_to_glyph(image, scale_factor, font, with_bug):
         image (PIL.Image.Image): Input image to convert to glyph
         scale_factor (float or str): Either a numeric value for manual scaling or "AUTO" for automatic scaling
         font (fontTools.ttLib.TTFont): Font object to update with the new glyph
-        with_bug (bool): If True, applies a special coordinate transformation (bug mode)
+        with_bug (bool): If True, applies a special coordinate transformation
         
     Returns:
         fontTools.ttLib.tables._g_l_y_f.Glyph: The converted glyph
@@ -140,13 +160,11 @@ def image_to_glyph(image, scale_factor, font, with_bug):
         for segment in curve.segments:
             if segment.is_corner:
                 pen.lineTo((segment.c[0], segment.c[1]))  # Unpack tuple (x, y)
-                # Unpack tuple (x, y)
                 pen.lineTo((segment.end_point[0], segment.end_point[1]))
             else:
                 pen.curveTo(
                     (segment.c1[0], segment.c1[1]),  # Unpack tuple (x, y)
                     (segment.c2[0], segment.c2[1]),  # Unpack tuple (x, y)
-                    # Unpack tuple (x, y)
                     (segment.end_point[0], segment.end_point[1]),
                 )
         pen.closePath()
@@ -181,12 +199,16 @@ def image_to_glyph(image, scale_factor, font, with_bug):
     # Scale the glyph coordinates to fit within the TrueType format limits
     for i in range(len(glyph.coordinates)):
         if not with_bug:
-            glyph.coordinates[i] = (int(glyph.coordinates[i][0] * final_scale_factor),
-                                    int(glyph.coordinates[i][1] * -final_scale_factor + ascender))
+            glyph.coordinates[i] = (
+                int(glyph.coordinates[i][0] * final_scale_factor),
+                int(glyph.coordinates[i][1] * -final_scale_factor + ascender)
+            )
         else:
             # very beauterful bug
-            glyph.coordinates[i] = (int(glyph.coordinates[-i][0] * final_scale_factor),
-                                    int(glyph.coordinates[-i][1] * final_scale_factor))
+            glyph.coordinates[i] = (
+                int(glyph.coordinates[-i][0] * final_scale_factor),
+                int(glyph.coordinates[-i][1] * final_scale_factor)
+            )
 
     # Update the glyph in the font
     return glyph

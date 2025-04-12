@@ -1,9 +1,18 @@
+"""Font perforation implementation.
+
+This module provides functionality for perforating fonts by removing dots from
+glyphs while maintaining readability. It uses blue noise dithering and Sobol'
+sequences to create visually pleasing patterns.
+"""
+
+from typing import Union
 from fontTools.ttLib import TTFont
 from PIL import Image, ImageDraw, ImageFont
+from tqdm import tqdm
+
 from .dithering import generate_sobol_sequence, apply_blue_noise_dithering
 from .glyphs import image_to_glyph, decompose_glyph
-from tqdm import tqdm
-from typing import Union
+
 
 def perforate_font(
     input_font_path: str,
@@ -14,21 +23,21 @@ def perforate_font(
     scale_factor: Union[float, str] = "AUTO",
     test: bool = False,
     debug: bool = False,
-    progress_callback = None
+    progress_callback=None
 ):
     """
     Perforate all glyphs in a font using Sobol' sequence and blue noise dithering.
     
     Args:
-        input_font_path (str): Path to the input font file (e.g., 'fonts/Times.ttf')
-        output_font_path (str): Path where the perforated font will be saved (e.g., 'fonts/EcoTimes.ttf')
-        reduction_percentage (float): Percentage of dots to remove (0-100). Default: 20
-        with_bug (bool): If True, applies a special coordinate transformation (bug mode). Default: False
-        draw_images (bool): If True, saves debug images of each perforated glyph. Default: False
-        scale_factor (float | str): Scaling factor for glyph coordinates. Use "AUTO" for automatic scaling. Default: "AUTO"
-        test (bool): If True, only processes the first 20 glyphs. Default: False
-        debug (bool): If True, prints detailed debug information. Default: False
-        progress_callback: Optional callback function to report progress (0-100). Default: None
+        input_font_path (str): Path to the input font file
+        output_font_path (str): Path where the perforated font will be saved
+        reduction_percentage (float): Percentage of dots to remove (0-100)
+        with_bug (bool): If True, applies a special coordinate transformation
+        draw_images (bool): If True, saves debug images of each perforated glyph
+        scale_factor (float | str): Scaling factor for glyph coordinates
+        test (bool): If True, only processes the first 20 glyphs
+        debug (bool): If True, prints detailed debug information
+        progress_callback: Optional callback function to report progress (0-100)
         
     Returns:
         None
@@ -47,8 +56,7 @@ def perforate_font(
     draw = ImageDraw.Draw(image)
 
     # Load the font into PIL for rendering
-    pil_font = ImageFont.truetype(
-        input_font_path, size=400)
+    pil_font = ImageFont.truetype(input_font_path, size=400)
 
     # Get the font's character map (cmap)
     cmap = font.getBestCmap()
@@ -112,7 +120,10 @@ def perforate_font(
             print(f"has contours: {hasattr(glyph, 'endPtsOfContours')}")
             if hasattr(glyph, 'endPtsOfContours'):
                 print(f"number of contours: {len(glyph.endPtsOfContours)}")
-            print(f"bounding box: {getattr(glyph, 'xMin', None)}, {getattr(glyph, 'yMin', None)}, {getattr(glyph, 'xMax', None)}, {getattr(glyph, 'yMax', None)}")
+            print(f"bounding box: {getattr(glyph, 'xMin', None)}, "
+                  f"{getattr(glyph, 'yMin', None)}, "
+                  f"{getattr(glyph, 'xMax', None)}, "
+                  f"{getattr(glyph, 'yMax', None)}")
 
         # Clear the image for the next glyph
         draw.rectangle([0, 0, image_size[0], image_size[1]], fill=255)
@@ -126,8 +137,10 @@ def perforate_font(
             # For composite glyphs or when direct rendering fails, try special cases first
             if glyph_name in cyrillic_special_cases:
                 if debug:
-                    print(f"Using special case for {glyph_name}: {cyrillic_special_cases[glyph_name]}")
-                draw.text((50, 50), cyrillic_special_cases[glyph_name], font=pil_font, fill=0)
+                    print(f"Using special case for {glyph_name}: "
+                          f"{cyrillic_special_cases[glyph_name]}")
+                draw.text((50, 50), cyrillic_special_cases[glyph_name],
+                         font=pil_font, fill=0)
             elif unicode_char and 0x0400 <= ord(unicode_char) <= 0x04FF:
                 # Map Cyrillic to Latin analogues
                 cyrillic_to_latin = {
@@ -160,21 +173,21 @@ def perforate_font(
                         # Draw the decomposed glyph
                         for cmd, args in pen.value:
                             if cmd == 'moveTo':
-                                x, y = args
-                                x = int((x - bbox[0]) * scale + 50)
-                                y = int((y - bbox[1]) * scale + 50)
-                                draw.point((x, y), fill=0)
+                                point_x, point_y = args
+                                point_x = int((point_x - bbox[0]) * scale + 50)
+                                point_y = int((point_y - bbox[1]) * scale + 50)
+                                draw.point((point_x, point_y), fill=0)
                             elif cmd == 'lineTo':
-                                x, y = args
-                                x = int((x - bbox[0]) * scale + 50)
-                                y = int((y - bbox[1]) * scale + 50)
-                                draw.point((x, y), fill=0)
+                                point_x, point_y = args
+                                point_x = int((point_x - bbox[0]) * scale + 50)
+                                point_y = int((point_y - bbox[1]) * scale + 50)
+                                draw.point((point_x, point_y), fill=0)
                             elif cmd == 'curveTo':
                                 # For curves, we'll just draw the end point
-                                x, y = args[-1]
-                                x = int((x - bbox[0]) * scale + 50)
-                                y = int((y - bbox[1]) * scale + 50)
-                                draw.point((x, y), fill=0)
+                                point_x, point_y = args[-1]
+                                point_x = int((point_x - bbox[0]) * scale + 50)
+                                point_y = int((point_y - bbox[1]) * scale + 50)
+                                draw.point((point_x, point_y), fill=0)
                     elif debug:
                         print("Failed to decompose glyph")
             else:
@@ -193,21 +206,21 @@ def perforate_font(
                     # Draw the decomposed glyph
                     for cmd, args in pen.value:
                         if cmd == 'moveTo':
-                            x, y = args
-                            x = int((x - bbox[0]) * scale + 50)
-                            y = int((y - bbox[1]) * scale + 50)
-                            draw.point((x, y), fill=0)
+                            point_x, point_y = args
+                            point_x = int((point_x - bbox[0]) * scale + 50)
+                            point_y = int((point_y - bbox[1]) * scale + 50)
+                            draw.point((point_x, point_y), fill=0)
                         elif cmd == 'lineTo':
-                            x, y = args
-                            x = int((x - bbox[0]) * scale + 50)
-                            y = int((y - bbox[1]) * scale + 50)
-                            draw.point((x, y), fill=0)
+                            point_x, point_y = args
+                            point_x = int((point_x - bbox[0]) * scale + 50)
+                            point_y = int((point_y - bbox[1]) * scale + 50)
+                            draw.point((point_x, point_y), fill=0)
                         elif cmd == 'curveTo':
                             # For curves, we'll just draw the end point
-                            x, y = args[-1]
-                            x = int((x - bbox[0]) * scale + 50)
-                            y = int((y - bbox[1]) * scale + 50)
-                            draw.point((x, y), fill=0)
+                            point_x, point_y = args[-1]
+                            point_x = int((point_x - bbox[0]) * scale + 50)
+                            point_y = int((point_y - bbox[1]) * scale + 50)
+                            draw.point((point_x, point_y), fill=0)
                 elif debug:
                     print("Failed to decompose non-Cyrillic glyph")
 
@@ -235,9 +248,9 @@ def perforate_font(
 
             if debug:
                 print("trace: ", glyph_name)
-        except Exception as e:
+        except Exception as exc:
             if debug:
-                print(f"Error processing glyph {glyph_name}: {e}")
+                print(f"Error processing glyph {glyph_name}: {exc}")
                 continue
 
     # Remove non-modified glyphs from the font
@@ -248,11 +261,10 @@ def perforate_font(
     # Modify the name table
     name_table = font['name']
     for name_record in name_table.names:
-        # Check if the name record is for the font family name (nameID 1) or style name (nameID 2)
-        if name_record.nameID == 1:  # Font Family Name
-            name_record.string = "Eco" + str(font['name'].getName(1, 3, 1, 0x409).toStr())
-        elif name_record.nameID == 2:  # Font Subfamily Name (Style)
-            name_record.string = "PR" + str(100 - reduction_percentage)
+        if name_record.nameID == 1:  # Font Family name
+            name_record.string = f"{name_record.string} Eco"
+        elif name_record.nameID == 4:  # Full font name
+            name_record.string = f"{name_record.string} Eco"
 
     # Save the modified font
     font.save(output_font_path)
