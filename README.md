@@ -1,16 +1,12 @@
-# FontEco <a href = "" align="right">
-  <img src="misc/ecofont_logo.png" alt="FontEco Logo" width="100"/>
-</a>
+# FontEco <a href = ""><img src="misc/ecofont_logo.png" alt="FontEco Logo" align="right" width="150"/></a>
 
 FontEco is a Python tool for creating eco-friendly fonts by perforating existing fonts using Sobol' sequence and blue noise dithering techniques. This process reduces the amount of ink needed to print text while maintaining readability.
 
 ## Features
 
-- Font subsetting to alphanumeric characters
+- Making ypur fonts more "eco-friendly"
 - Blue noise dithering using Sobol' sequences
-- Glyph perforation with configurable reduction percentage
-- Support for both automatic and manual scaling
-- Debug visualization of perforated glyphs
+- Font perforation with configurable reduction percentage
 
 ## Installation
 
@@ -62,8 +58,8 @@ perforate_font(
 - Pillow
 - NumPy
 - OpenCV
-- potrace
-- scipy
+- potrace + pypotrace
+- scipy (for dithering)
 
 ## License
 
