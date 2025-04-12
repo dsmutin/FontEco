@@ -52,7 +52,7 @@ coverage.xml
 *.cover
 *.py,cover
 .hypothesis/
-tests_output.png
+test_output.png
 debug_binary.png
 
 # Logs
