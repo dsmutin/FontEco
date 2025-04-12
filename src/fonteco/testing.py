@@ -6,7 +6,7 @@ def test_perforation(input_font_path, output_test_path, reduction_percentage):
     Perforate a font using Sobol' sequence and blue noise dithering.
     """
     # Create a temporary image to render the font glyphs
-    image_size = (512, 512)  # Size of the image for rendering glyphs
+    image_size = (512, 1024)  # Size of the image for rendering glyphs
     image = Image.new("L", image_size, 255)  # White background
     draw = ImageDraw.Draw(image)
 
@@ -18,7 +18,7 @@ def test_perforation(input_font_path, output_test_path, reduction_percentage):
     pil_font = ImageFont.truetype(input_font_path, size=500)
 
     # Render the text to get the glyphs
-    draw.text((10, 10), "A", font=pil_font, fill=0)  # Render a sample glyph
+    draw.text((10, 10), "Aa", font=pil_font, fill=0)  # Render a sample glyph
 
     # Apply blue noise dithering
     perforated_image = apply_blue_noise_dithering(image, sobol_points)

@@ -1,31 +1,19 @@
 from src.fonteco.fonts import perforate_font
 from src.fonteco.testing import test_perforation
 
-def main():
-    # Example usage
-    input_font_path = "fonts/Times_subset.ttf"
-    output_font_path = "fonts/EcoTimes_15.ttf"
-    input_font_path = "fonts/Roboto_subset.ttf"
-    output_font_path = "fonts/EcoRoboto_15.ttf"
-    reduction_percentage = 15
-    with_bug = False
-    draw_images = True
-    scale_factor = "AUTO"
-    test = False
+input_font_path = "fonts/Roboto_subset.ttf"
+reduction_percentage = 30
+output_font_path = "fonts/EcoRoboto_"+str(reduction_percentage)+".ttf"
 
-    # Test perforation on a single glyph
-    test_perforation(input_font_path, "fonts/test_output.png", reduction_percentage)
+#run test
+test_perforation(
+    input_font_path,
+    "fonts/test_output.png",
+    reduction_percentage)
 
-    # Perforate the entire font
-    perforate_font(
-        input_font_path=input_font_path,
-        output_font_path=output_font_path,
-        reduction_percentage=reduction_percentage,
-        with_bug=with_bug,
-        draw_images=draw_images,
-        scale_factor=scale_factor,
-        test=test
+#perforate font
+perforate_font(
+    input_font_path=input_font_path,
+    output_font_path=output_font_path,
+    reduction_percentage=reduction_percentage,
     )
-
-if __name__ == "__main__":
-    main() 

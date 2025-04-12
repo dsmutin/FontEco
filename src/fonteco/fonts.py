@@ -3,20 +3,30 @@ from PIL import Image, ImageDraw, ImageFont
 from .dithering import generate_sobol_sequence, apply_blue_noise_dithering
 from .glyphs import image_to_glyph, decompose_glyph
 from tqdm import tqdm
+from typing import Union
 
-def perforate_font(input_font_path:str, output_font_path:str, reduction_percentage:float, with_bug:bool, draw_images:bool, scale_factor:float, test:bool, debug:bool=False):
+def perforate_font(
+    input_font_path: str,
+    output_font_path: str,
+    reduction_percentage: float = 20,
+    with_bug: bool = False,
+    draw_images: bool = False,
+    scale_factor: Union[float, str] = "AUTO",
+    test: bool = False,
+    debug: bool = False
+):
     """
     Perforate all glyphs in a font using Sobol' sequence and blue noise dithering.
     
     Args:
         input_font_path (str): Path to the input font file (e.g., 'fonts/Times.ttf')
         output_font_path (str): Path where the perforated font will be saved (e.g., 'fonts/EcoTimes.ttf')
-        reduction_percentage (float): Percentage of dots to remove (0-100)
-        with_bug (bool): If True, applies a special coordinate transformation (bug mode)
-        draw_images (bool): If True, saves debug images of each perforated glyph
-        scale_factor (float): Scaling factor for glyph coordinates
-        test (bool): If True, only processes the first 20 glyphs
-        debug (bool): If True, prints detailed debug information
+        reduction_percentage (float): Percentage of dots to remove (0-100). Default: 20
+        with_bug (bool): If True, applies a special coordinate transformation (bug mode). Default: False
+        draw_images (bool): If True, saves debug images of each perforated glyph. Default: False
+        scale_factor (float | str): Scaling factor for glyph coordinates. Use "AUTO" for automatic scaling. Default: "AUTO"
+        test (bool): If True, only processes the first 20 glyphs. Default: False
+        debug (bool): If True, prints detailed debug information. Default: False
         
     Returns:
         None
@@ -93,13 +103,75 @@ def perforate_font(input_font_path:str, output_font_path:str, reduction_percenta
         else:
             # For composite glyphs or when direct rendering fails, try to use Latin analogue
             if unicode_char and 0x0400 <= ord(unicode_char) <= 0x04FF:
-                # Map Cyrillic to Latin analogues
+                # Mapping of Cyrillic to Latin analogues
                 cyrillic_to_latin = {
-                    0x0410: 'A', 0x0412: 'B', 0x0415: 'E', 0x0417: '3',
-                    0x0418: 'N', 0x041A: 'K', 0x041C: 'M', 0x041E: 'O',
-                    0x0420: 'P', 0x0421: 'C', 0x0422: 'T', 0x0423: 'Y',
-                    0x0425: 'X', 0x0430: 'a', 0x0435: 'e', 0x043E: 'o',
-                    0x0440: 'p', 0x0441: 'c', 0x0443: 'y', 0x0445: 'x'
+                    # Basic Cyrillic letters
+                    '\u0410': 'A',  # А
+                    '\u0411': 'B',  # Б
+                    '\u0412': 'B',  # В
+                    '\u0413': 'r',  # Г
+                    '\u0414': 'D',  # Д
+                    '\u0415': 'E',  # Е
+                    '\u0416': 'X',  # Ж
+                    '\u0417': '3',  # З
+                    '\u0418': 'N',  # И
+                    '\u0419': 'N',  # Й (и with breve)
+                    '\u041A': 'K',  # К
+                    '\u041B': 'J',  # Л
+                    '\u041C': 'M',  # М
+                    '\u041D': 'H',  # Н
+                    '\u041E': 'O',  # О
+                    '\u041F': 'n',  # П
+                    '\u0420': 'P',  # Р
+                    '\u0421': 'C',  # С
+                    '\u0422': 'T',  # Т
+                    '\u0423': 'y',  # У
+                    '\u0424': 'O',  # Ф
+                    '\u0425': 'X',  # Х
+                    '\u0426': 'U',  # Ц
+                    '\u0427': '4',  # Ч
+                    '\u0428': 'W',  # Ш
+                    '\u0429': 'W',  # Щ
+                    '\u042A': 'b',  # Ъ
+                    '\u042B': 'bl', # Ы
+                    '\u042C': 'b',  # Ь
+                    '\u042D': '3',  # Э
+                    '\u042E': 'IO', # Ю
+                    '\u042F': 'R',  # Я
+                    # Lowercase
+                    '\u0430': 'a',  # а
+                    '\u0431': '6',  # б
+                    '\u0432': 'a',  # в
+                    '\u0433': 'r',  # г
+                    '\u0434': 'g',  # д
+                    '\u0435': 'e',  # е
+                    '\u0451': 'e',  # ё (е with dots)
+                    '\u0436': 'x',  # ж
+                    '\u0437': '3',  # з
+                    '\u0438': 'u',  # и
+                    '\u0439': 'u',  # й (и with breve)
+                    '\u043A': 'k',  # к
+                    '\u043B': 'n',  # л
+                    '\u043C': 'm',  # м
+                    '\u043D': 'h',  # н
+                    '\u043E': 'o',  # о
+                    '\u043F': 'n',  # п
+                    '\u0440': 'p',  # р
+                    '\u0441': 'c',  # с
+                    '\u0442': 't',  # т
+                    '\u0443': 'y',  # у
+                    '\u0444': 'o',  # ф
+                    '\u0445': 'x',  # х
+                    '\u0446': 'u',  # ц
+                    '\u0447': '4',  # ч
+                    '\u0448': 'w',  # ш
+                    '\u0449': 'w',  # щ
+                    '\u044A': 'b',  # ъ
+                    '\u044B': 'bl', # ы
+                    '\u044C': 'b',  # ь
+                    '\u044D': '3',  # э
+                    '\u044E': 'io', # ю
+                    '\u044F': 'r',  # я
                 }
                 latin_char = cyrillic_to_latin.get(ord(unicode_char))
                 if latin_char:

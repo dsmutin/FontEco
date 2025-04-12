@@ -4,9 +4,11 @@ FontEco is a Python tool for creating eco-friendly fonts by perforating existing
 
 ## Features
 
-- Making ypur fonts more "eco-friendly"
+- Making your fonts more "eco-friendly"
 - Blue noise dithering using Sobol' sequences
 - Font perforation with configurable reduction percentage
+- Support for both Latin and Cyrillic characters
+- Automatic scaling and optimization
 
 ## Installation
 
@@ -35,21 +37,32 @@ from fonteco.fonts import perforate_font
 perforate_font(
     input_font_path='fonts/Times.ttf',
     output_font_path='fonts/EcoTimes.ttf',
-    reduction_percentage=15,
-    with_bug=False,
-    draw_images=True,
-    scale_factor=3.5,
-    test=False
+    reduction_percentage=20,  # Default: 20%
+    with_bug=False,          # Default: False
+    draw_images=False,       # Default: False
+    scale_factor="AUTO",     # Default: "AUTO"
+    test=False,              # Default: False
+    debug=False              # Default: False
 )
 ```
 
 ## Parameters
 
-- `reduction_percentage`: Percentage of dots to remove (0-100)
-- `with_bug`: Enable special coordinate transformation (bug mode)
-- `draw_images`: Save debug images of perforated glyphs
-- `scale_factor`: Scaling factor for glyph coordinates
-- `test`: Process only first 20 glyphs for testing
+- `input_font_path` (str): Path to the input font file
+- `output_font_path` (str): Path where the perforated font will be saved
+- `reduction_percentage` (float): Percentage of dots to remove (0-100). Default: 20
+- `with_bug` (bool): Enable special coordinate transformation (bug mode). Default: False
+- `draw_images` (bool): Save debug images of perforated glyphs. Default: False
+- `scale_factor` (float or str): Scaling factor for glyph coordinates. Use "AUTO" for automatic scaling. Default: "AUTO"
+- `test` (bool): Process only first 20 glyphs for testing. Default: False
+- `debug` (bool): Print detailed debug information. Default: False
+
+## Features in Detail
+
+- **Automatic Scaling**: When `scale_factor="AUTO"`, the tool automatically calculates the optimal scaling factor based on font metrics
+- **Cyrillic Support**: Handles both Latin and Cyrillic characters, including composite glyphs
+- **Progress Tracking**: Shows a progress bar during font processing
+- **Debug Mode**: Optional detailed logging of glyph processing steps
 
 ## Requirements
 
@@ -60,6 +73,7 @@ perforate_font(
 - OpenCV
 - potrace + pypotrace
 - scipy (for dithering)
+- tqdm (for progress bar)
 
 ## License
 
