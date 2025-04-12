@@ -5,6 +5,8 @@ def main():
     # Example usage
     input_font_path = "fonts/Times_subset.ttf"
     output_font_path = "fonts/EcoTimes_15.ttf"
+    input_font_path = "fonts/Roboto_subset.ttf"
+    output_font_path = "fonts/EcoRoboto_15.ttf"
     reduction_percentage = 15
     with_bug = False
     draw_images = True
@@ -12,7 +14,7 @@ def main():
     test = False
 
     # Test perforation on a single glyph
-    test_perforation(input_font_path, "test_output.png", reduction_percentage)
+    test_perforation(input_font_path, "fonts/test_output.png", reduction_percentage)
 
     # Perforate the entire font
     perforate_font(

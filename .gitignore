@@ -38,6 +38,7 @@ perforated_*.png
 !fonts/Times.ttf
 !fonts/Times_subset.ttf
 !fonts/Roboto.ttf
+!fonts/Roboto_subset.ttf
 
 # Testing
 .coverage
