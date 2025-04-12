@@ -15,6 +15,5 @@ test_perforation(
 perforate_font(
     input_font_path=input_font_path,
     output_font_path=output_font_path,
-    reduction_percentage=reduction_percentage,
-    debug=True
+    reduction_percentage=reduction_percentage
     )

@@ -13,7 +13,8 @@ def perforate_font(
     draw_images: bool = False,
     scale_factor: Union[float, str] = "AUTO",
     test: bool = False,
-    debug: bool = False
+    debug: bool = False,
+    progress_callback = None
 ):
     """
     Perforate all glyphs in a font using Sobol' sequence and blue noise dithering.
@@ -27,6 +28,7 @@ def perforate_font(
         scale_factor (float | str): Scaling factor for glyph coordinates. Use "AUTO" for automatic scaling. Default: "AUTO"
         test (bool): If True, only processes the first 20 glyphs. Default: False
         debug (bool): If True, prints detailed debug information. Default: False
+        progress_callback: Optional callback function to report progress (0-100). Default: None
         
     Returns:
         None
@@ -74,6 +76,8 @@ def perforate_font(
     if test:
         glyphs = glyphs[0:20]
     
+    total_glyphs = len(glyphs)
+    
     # Create progress bar with different detail levels based on debug flag
     progress_bar = tqdm(
         glyphs,
@@ -82,7 +86,11 @@ def perforate_font(
         bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt} [{elapsed}<{remaining}]' if debug else '{l_bar}{bar}| {n_fmt}/{total_fmt}'
     )
     
-    for glyph_name in progress_bar:
+    for i, glyph_name in enumerate(progress_bar):
+        if progress_callback:
+            progress = int((i / total_glyphs) * 100)
+            progress_callback(progress)
+            
         glyph = font["glyf"][glyph_name]
         if glyph_name == ".notdef" or glyph_name not in font.getReverseGlyphMap():
             if debug:
