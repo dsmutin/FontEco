@@ -1,3 +1,7 @@
+<div align="right">
+  <img src="misc/ecofont_logo.png" alt="FontEco Logo" width="100"/>
+</div>
+
 # FontEco
 
 FontEco is a Python tool for creating eco-friendly fonts by perforating existing fonts using Sobol' sequence and blue noise dithering techniques. This process reduces the amount of ink needed to print text while maintaining readability.
