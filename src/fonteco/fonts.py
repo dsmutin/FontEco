@@ -23,29 +23,25 @@ def perforate_font(
     scale_factor: Union[float, str] = "AUTO",
     test: bool = False,
     debug: bool = False,
-    progress_callback=None
+    progress_callback=None,
+    point_size: int = 1,
+    size_reduction: float = 1.0
 ):
     """
-    Perforate all glyphs in a font using Sobol' sequence and blue noise dithering.
+    Perforate a font by removing dots based on blue noise dithering.
     
     Args:
-        input_font_path (str): Path to the input font file
-        output_font_path (str): Path where the perforated font will be saved
+        input_font_path (str): Path to input font file
+        output_font_path (str): Path to save perforated font
         reduction_percentage (float): Percentage of dots to remove (0-100)
         with_bug (bool): If True, applies a special coordinate transformation
-        draw_images (bool): If True, saves debug images of each perforated glyph
-        scale_factor (float | str): Scaling factor for glyph coordinates
-        test (bool): If True, only processes the first 20 glyphs
-        debug (bool): If True, prints detailed debug information
-        progress_callback: Optional callback function to report progress (0-100)
-        
-    Returns:
-        None
-        
-    Raises:
-        FileNotFoundError: If the input font file does not exist
-        ValueError: If reduction_percentage is not between 0 and 100
-        TypeError: If any of the arguments have incorrect types
+        draw_images (bool): If True, saves debug images
+        scale_factor (float or str): Either a numeric value or "AUTO" for automatic scaling
+        test (bool): If True, runs in test mode
+        debug (bool): If True, enables debug output
+        progress_callback (callable): Optional callback for progress updates
+        point_size (int): Size of each point to remove in dithering (default: 1)
+        size_reduction (float): Factor to reduce the final glyph size (default: 1.0)
     """
     # Load the font
     font = TTFont(input_font_path)
@@ -231,19 +227,24 @@ def perforate_font(
             image_size[0], image_size[1], num_points)
 
         # Apply blue noise dithering
-        perforated_image = apply_blue_noise_dithering(image, sobol_points)
+        dithered_image = apply_blue_noise_dithering(image, sobol_points, point_size=point_size)
 
         try:
             # Convert the dithered image back to a glyph outline
-            font["glyf"][glyph_name] = image_to_glyph(
-                perforated_image, scale_factor, font, with_bug)
+            glyph = image_to_glyph(
+                dithered_image,
+                scale_factor,
+                font,
+                with_bug,
+                size_reduction=size_reduction
+            )
 
             # Mark this glyph as modified
             modified_glyphs.add(glyph_name)
 
             # Save the perforated glyph image (for visualization)
             if draw_images:
-                perforated_image.save(
+                dithered_image.save(
                     f"/home/dsmutin/tools/fonteco/perforated_{glyph_name}.png")
 
             if debug:
