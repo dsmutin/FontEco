@@ -4,7 +4,7 @@ This script creates a subset of a font containing only the 'A' glyph
 and saves it to a new file.
 """
 
-from fonteco.font_utils import create_subset_font, subset_font_to_single_glyph
+from fonteco.font_utils import create_subset_font, subset_font_to_glyphs
 
 
 def main():
@@ -13,7 +13,7 @@ def main():
     output_font = "fonts/TimesNewRoman_single_A.ttf"
     
     print(f"Creating subset with only 'A' glyph from {input_font}...")
-    create_subset_font(input_font, output_font, subset_font_to_single_glyph)
+    create_subset_font(input_font, output_font, subset_font_to_glyphs)
     print(f"Subset font saved to {output_font}")
 
 
