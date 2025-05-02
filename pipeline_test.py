@@ -1,5 +1,5 @@
 from src.fonteco.fonts import perforate_font
-from src.fonteco.testing import test_perforation
+from src.fonteco.testing import visualize_perforation
 import os
 
 # Test configurations
@@ -43,8 +43,8 @@ def main():
         output_font_path = os.path.join(OUTPUT_DIR, f"EcoTimesNewRoman_{config['name']}.ttf")
         test_image_path = os.path.join(OUTPUT_DIR, f"test_{config['name']}.png")
         
-        # Run test
-        test_perforation(
+        # Run visualization
+        visualize_perforation(
             INPUT_FONT_PATH,
             test_image_path,
             REDUCTION_PERCENTAGE

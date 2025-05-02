@@ -8,9 +8,9 @@ from PIL import Image, ImageDraw, ImageFont
 from .dithering import generate_sobol_sequence, apply_blue_noise_dithering
 
 
-def test_perforation(input_font_path, output_test_path, reduction_percentage):
+def visualize_perforation(input_font_path, output_test_path, reduction_percentage):
     """
-    Test the perforation process on a sample glyph.
+    Visualize the perforation process on a sample glyph.
     
     Args:
         input_font_path (str): Path to the input font file
@@ -33,7 +33,7 @@ def test_perforation(input_font_path, output_test_path, reduction_percentage):
     draw.text((10, 10), "Aa", font=pil_font, fill=0)  # Render a sample glyph
 
     # Apply blue noise dithering
-    perforated_image = apply_blue_noise_dithering(image, sobol_points)
+    perforated_image = apply_blue_noise_dithering(image, sobol_points, point_size=1)
     # Save the perforated image (for visualization)
     perforated_image.save(output_test_path)
 
