@@ -6,18 +6,18 @@ This script orchestrates the font perforation process by:
 """
 
 from src.fonteco.fonts import perforate_font
-from src.fonteco.testing import test_perforation
+from src.fonteco.testing import visualize_perforation
 
 
-INPUT_FONT_PATH = "fonts/TimesNewRoman_subset.ttf"
-REDUCTION_PERCENTAGE = 40
-OUTPUT_FONT_PATH = f"fonts/EcoTimesNewRoman_{REDUCTION_PERCENTAGE}.ttf"
+INPUT_FONT_PATH = "fonts/Times_subset.ttf"
+REDUCTION_PERCENTAGE = 50
+OUTPUT_FONT_PATH = f"test_outputs/EcoTimes_{REDUCTION_PERCENTAGE}.ttf"
 
 
 def main():
     """Run the font perforation pipeline."""
     # Run test
-    test_perforation(
+    visualize_perforation(
         INPUT_FONT_PATH,
         "fonts/test_output.png",
         REDUCTION_PERCENTAGE

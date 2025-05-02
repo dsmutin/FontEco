@@ -227,7 +227,7 @@ def perforate_font(
             image_size[0], image_size[1], num_points)
 
         # Apply blue noise dithering
-        dithered_image = apply_blue_noise_dithering(image, sobol_points, point_size=point_size)
+        dithered_image = apply_blue_noise_dithering(image, sobol_points)
 
         try:
             # Convert the dithered image back to a glyph outline
@@ -263,9 +263,11 @@ def perforate_font(
     name_table = font['name']
     for name_record in name_table.names:
         if name_record.nameID == 1:  # Font Family name
-            name_record.string = f"{name_record.string} Eco"
+            original_name = name_record.string.decode('utf-16-be') if isinstance(name_record.string, bytes) else name_record.string
+            name_record.string = f"{original_name} Eco"
         elif name_record.nameID == 4:  # Full font name
-            name_record.string = f"{name_record.string} Eco"
+            original_name = name_record.string.decode('utf-16-be') if isinstance(name_record.string, bytes) else name_record.string
+            name_record.string = f"{original_name} Eco"
 
     # Save the modified font
     font.save(output_font_path)

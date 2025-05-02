@@ -10,6 +10,60 @@ FontEco is a Python tool for creating eco-friendly fonts by perforating existing
 - Support for both Latin and Cyrillic characters
 - Automatic scaling and optimization
 
+## How It Works
+
+FontEco uses a sophisticated pipeline to create eco-friendly fonts by intelligently removing dots from glyphs while maintaining readability. Here's how the process works:
+
+1. **Glyph Rendering**:
+   - Each glyph from the input font is rendered to a high-resolution image (512x512)
+   - Special handling for composite glyphs and Cyrillic characters
+   - Automatic scaling to maintain proper proportions
+   - Uses PIL (Python Imaging Library) for high-quality glyph rendering
+
+2. **Blue Noise Dithering**:
+   - Uses Sobol' sequence algorithm to generate a uniform distribution of points
+   - Applies Floyd-Steinberg dithering with blue noise pattern
+   - Configurable reduction percentage (default: 20%)
+   - Ensures visually pleasing distribution of removed dots
+
+3. **Vectorization**:
+   - Converts the dithered image back to vector outlines using Potrace algorithm
+   - Applies Douglas-Peucker algorithm for path simplification
+   - Uses Bézier curve fitting for smooth outlines
+   - Optimizes control points using distance-based filtering
+
+4. **Font Generation**:
+   - Scales the glyphs to match the original font metrics
+   - Updates font metadata and naming
+   - Preserves font features and compatibility
+   - Uses fontTools for font manipulation and optimization
+
+```mermaid
+graph TD
+    A[Input Font] --> B[Load Font]
+    B --> C[Process Each Glyph]
+    C --> D[Render Glyph to Image]
+    D --> E[Apply Blue Noise Dithering]
+    E --> F[Vectorize with Potrace]
+    F --> G[Simplify Paths]
+    G --> H[Scale to Font Metrics]
+    H --> I[Update Font]
+    I --> J[Output Eco Font]
+    
+    subgraph "Blue Noise Dithering"
+        E1[Generate Sobol Sequence] --> E2[Calculate Points to Remove]
+        E2 --> E3[Apply Floyd-Steinberg Dithering]
+    end
+    
+    subgraph "Vectorization"
+        F1[Potrace Algorithm] --> F2[Bézier Curve Fitting]
+        F2 --> F3[Douglas-Peucker Simplification]
+    end
+    
+    E --> E1
+    F --> F1
+```
+
 ## Installation
 
 1. Clone the repository:
