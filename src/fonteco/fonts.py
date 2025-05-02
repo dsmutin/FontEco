@@ -263,10 +263,12 @@ def perforate_font(
     # Modify the name table
     name_table = font['name']
     for name_record in name_table.names:
-        if name_record.nameID == 1:  # Font Family name
-            name_record.string = f"{name_record.string} Eco"
+        if name_record.nameID == 1:  # Font Family name      
+            original_name = name_record.string.decode('utf-16-be') if isinstance(name_record.string, bytes) else name_record.string
+            name_record.string = f"{original_name} Eco"
         elif name_record.nameID == 4:  # Full font name
-            name_record.string = f"{name_record.string} Eco"
+            original_name = name_record.string.decode('utf-16-be') if isinstance(name_record.string, bytes) else name_record.string
+            name_record.string = f"{original_name} Eco"
 
     # Save the modified font
     font.save(output_font_path)
