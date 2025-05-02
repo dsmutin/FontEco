@@ -108,7 +108,7 @@ def test_perforation(input_font_path, output_test_path, reduction_percentage):
     print(f"Perforated font saved to {output_test_path}")
 
 
-def image_to_glyph(image, scale_factor, font, with_bug, size_reduction=1.0):
+def image_to_glyph(image, scale_factor, font, with_bug):
     """
     Convert a dithered image to a glyph outline and update the font.
     
@@ -117,7 +117,6 @@ def image_to_glyph(image, scale_factor, font, with_bug, size_reduction=1.0):
         scale_factor (float or str): Either a numeric value for manual scaling or "AUTO" for automatic scaling
         font (fontTools.ttLib.TTFont): Font object to update with the new glyph
         with_bug (bool): If True, applies a special coordinate transformation
-        size_reduction (float): Factor to reduce the final glyph size (default: 1.0, no reduction)
         
     Returns:
         fontTools.ttLib.tables._g_l_y_f.Glyph: The converted glyph
@@ -196,9 +195,6 @@ def image_to_glyph(image, scale_factor, font, with_bug, size_reduction=1.0):
     else:
         # Use the provided numeric scale factor
         final_scale_factor = float(scale_factor)
-        
-    # Apply size reduction
-    final_scale_factor *= size_reduction
 
     # Scale the glyph coordinates to fit within the TrueType format limits
     for i in range(len(glyph.coordinates)):

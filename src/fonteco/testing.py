@@ -8,7 +8,7 @@ from PIL import Image, ImageDraw, ImageFont
 from fontTools.ttLib import TTFont
 from .dithering import generate_sobol_sequence, apply_blue_noise_dithering
 from .fonts import perforate_font
-from .font_utils import create_subset_font, subset_font_to_single_glyph
+from .font_utils import create_subset_font, subset_font_to_glyphs
 
 
 def test_perforation_rendering(input_font_path, output_test_path, reduction_percentage=20):
@@ -31,7 +31,7 @@ def test_perforation_rendering(input_font_path, output_test_path, reduction_perc
         
         # Create subset with single glyph
         print("Creating single glyph subset...")
-        create_subset_font(input_font_path, subset_path, subset_font_to_single_glyph)
+        create_subset_font(input_font_path, subset_path, subset_font_to_glyphs)
         
         # Perforate the subset
         print("Perforating font...")

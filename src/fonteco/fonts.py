@@ -18,30 +18,36 @@ def perforate_font(
     input_font_path: str,
     output_font_path: str,
     reduction_percentage: float = 20,
+    point_size: int = 1,
     with_bug: bool = False,
     draw_images: bool = False,
     scale_factor: Union[float, str] = "AUTO",
     test: bool = False,
     debug: bool = False,
-    progress_callback=None,
-    point_size: int = 1,
-    size_reduction: float = 1.0
+    progress_callback = None
 ):
     """
-    Perforate a font by removing dots based on blue noise dithering.
+    Perforate all glyphs in a font using Sobol' sequence and blue noise dithering.
     
     Args:
-        input_font_path (str): Path to input font file
-        output_font_path (str): Path to save perforated font
+        input_font_path (str): Path to the input font file
+        output_font_path (str): Path where the perforated font will be saved
         reduction_percentage (float): Percentage of dots to remove (0-100)
+        point_size (int): Size of each point to remove (default: 1)
         with_bug (bool): If True, applies a special coordinate transformation
-        draw_images (bool): If True, saves debug images
-        scale_factor (float or str): Either a numeric value or "AUTO" for automatic scaling
-        test (bool): If True, runs in test mode
-        debug (bool): If True, enables debug output
-        progress_callback (callable): Optional callback for progress updates
-        point_size (int): Size of each point to remove in dithering (default: 1)
-        size_reduction (float): Factor to reduce the final glyph size (default: 1.0)
+        draw_images (bool): If True, saves debug images of each perforated glyph
+        scale_factor (float | str): Scaling factor for glyph coordinates
+        test (bool): If True, only processes the first 20 glyphs
+        debug (bool): If True, prints detailed debug information
+        progress_callback: Optional callback function to report progress (0-100)
+        
+    Returns:
+        None
+        
+    Raises:
+        FileNotFoundError: If the input font file does not exist
+        ValueError: If reduction_percentage is not between 0 and 100
+        TypeError: If any of the arguments have incorrect types
     """
     # Load the font
     font = TTFont(input_font_path)
@@ -227,24 +233,19 @@ def perforate_font(
             image_size[0], image_size[1], num_points)
 
         # Apply blue noise dithering
-        dithered_image = apply_blue_noise_dithering(image, sobol_points)
+        perforated_image = apply_blue_noise_dithering(image, sobol_points, point_size)
 
         try:
             # Convert the dithered image back to a glyph outline
-            glyph = image_to_glyph(
-                dithered_image,
-                scale_factor,
-                font,
-                with_bug,
-                size_reduction=size_reduction
-            )
+            font["glyf"][glyph_name] = image_to_glyph(
+                perforated_image, scale_factor, font, with_bug)
 
             # Mark this glyph as modified
             modified_glyphs.add(glyph_name)
 
             # Save the perforated glyph image (for visualization)
             if draw_images:
-                dithered_image.save(
+                perforated_image.save(
                     f"/home/dsmutin/tools/fonteco/perforated_{glyph_name}.png")
 
             if debug:
@@ -263,11 +264,9 @@ def perforate_font(
     name_table = font['name']
     for name_record in name_table.names:
         if name_record.nameID == 1:  # Font Family name
-            original_name = name_record.string.decode('utf-16-be') if isinstance(name_record.string, bytes) else name_record.string
-            name_record.string = f"{original_name} Eco"
+            name_record.string = f"{name_record.string} Eco"
         elif name_record.nameID == 4:  # Full font name
-            original_name = name_record.string.decode('utf-16-be') if isinstance(name_record.string, bytes) else name_record.string
-            name_record.string = f"{original_name} Eco"
+            name_record.string = f"{name_record.string} Eco"
 
     # Save the modified font
     font.save(output_font_path)

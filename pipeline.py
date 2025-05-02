@@ -19,7 +19,7 @@ def main():
     # Run test
     visualize_perforation(
         INPUT_FONT_PATH,
-        "fonts/test_output.png",
+        "test_outputs/test_output.png",
         REDUCTION_PERCENTAGE
     )
 

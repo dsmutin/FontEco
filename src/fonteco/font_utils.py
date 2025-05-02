@@ -142,47 +142,47 @@ def subset_font_to_alphanumeric_and_cyrillic(font_path):
     
     return font
 
-
-def subset_font_to_single_glyph(font_path, glyph_name="A"):
+def subset_font_to_glyphs(font_path, glyph_names):
     """
-    Create a subset of a font containing only a single glyph.
+    Create a subset of a font containing only specified glyphs.
     
     Args:
         font_path (str): Path to the input font file
-        glyph_name (str): Name of the glyph to include (default: "A")
+        glyph_names (list): List of glyph names or characters to include
         
     Returns:
-        TTFont: A subsetted font containing only the specified glyph and required glyphs
+        TTFont: A subsetted font containing only the specified glyphs and required glyphs
         
     Raises:
         FileNotFoundError: If the input font file does not exist
-        ValueError: If the input file is not a valid font file or if the glyph is not found
+        ValueError: If the input file is not a valid font file or if any glyph is not found
     """
     # Load the font
     font = TTFont(font_path)
     
-    # If glyph_name is a single character, convert it to glyph name
-    unicode_value = None
-    if len(glyph_name) == 1:
-        unicode_value = ord(glyph_name)
-        # Try to get the glyph name from cmap
-        for table in font['cmap'].tables:
-            if unicode_value in table.cmap:
-                glyph_name = table.cmap[unicode_value]
-                break
+    # Convert character glyphs to glyph names
+    processed_glyph_names = set()
+    unicode_mappings = {}
+    
+    for glyph_name in glyph_names:
+        if len(glyph_name) == 1:
+            unicode_value = ord(glyph_name)
+            # Try to get the glyph name from cmap
+            for table in font['cmap'].tables:
+                if unicode_value in table.cmap:
+                    processed_glyph_names.add(table.cmap[unicode_value])
+                    unicode_mappings[unicode_value] = table.cmap[unicode_value]
+                    break
+        else:
+            processed_glyph_names.add(glyph_name)
     
     # Get the glyph order
     glyph_order = font.getGlyphOrder()
     
-    # Find the glyph index
-    glyph_index = None
-    for i, name in enumerate(glyph_order):
-        if name == glyph_name:
-            glyph_index = i
-            break
-    
-    if glyph_index is None:
-        raise ValueError(f"Glyph {glyph_name} not found in font")
+    # Verify all glyphs exist
+    missing_glyphs = [name for name in processed_glyph_names if name not in glyph_order]
+    if missing_glyphs:
+        raise ValueError(f"Glyphs not found in font: {missing_glyphs}")
     
     # Create a new font with minimal tables
     from fontTools.ttLib import newTable
@@ -198,12 +198,13 @@ def subset_font_to_single_glyph(font_path, glyph_name="A"):
         # Copy .notdef glyph if it exists
         if '.notdef' in font['glyf'].glyphs:
             new_font['glyf'].glyphs['.notdef'] = font['glyf']['.notdef']
-        # Copy target glyph
-        if glyph_name in font['glyf'].glyphs:
-            new_font['glyf'].glyphs[glyph_name] = font['glyf'][glyph_name]
+        # Copy target glyphs
+        for glyph_name in processed_glyph_names:
+            if glyph_name in font['glyf'].glyphs:
+                new_font['glyf'].glyphs[glyph_name] = font['glyf'][glyph_name]
     
     # Set glyph order first
-    glyph_order = ['.notdef', glyph_name]
+    glyph_order = ['.notdef'] + list(processed_glyph_names)
     new_font.setGlyphOrder(glyph_order)
     
     # Copy and update other required tables
@@ -224,11 +225,8 @@ def subset_font_to_single_glyph(font_path, glyph_name="A"):
     format4.platEncID = 1
     format4.language = 0
     
-    # Add the mapping
-    if unicode_value is not None:
-        format4.cmap = {unicode_value: glyph_name}
-    else:
-        format4.cmap = {}
+    # Add the mappings
+    format4.cmap = unicode_mappings
     
     # Add the subtable to the cmap
     new_font['cmap'].tables.append(format4)
