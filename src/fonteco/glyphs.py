@@ -119,7 +119,7 @@ def image_to_glyph(image, scale_factor, font, with_bug, render_mode="original", 
         scale_factor (float or str): Either a numeric value for manual scaling or "AUTO" for automatic scaling
         font (fontTools.ttLib.TTFont): Font object to update with the new glyph
         with_bug (bool): If True, applies a special coordinate transformation
-        render_mode (str): Rendering mode to use ("original", "simplified", or "optimized")
+        render_mode (str): Rendering mode to use ("original", "simplified", "optimized", or "optimized_masked")
         num_levels (int): Number of transparency levels for simplified mode (optimal: 4)
                          or grid size for optimized mode (optimal: 100)
         debug_dir (str): Directory to save debug images (if None, no debug images are saved)
@@ -209,7 +209,7 @@ def image_to_glyph(image, scale_factor, font, with_bug, render_mode="original", 
         # Initialize a new glyph pen
         pen = TTGlyphPen(font.getGlyphSet())
 
-        if render_mode == "optimized":
+        if render_mode.startswith("optimized"):
             if num_levels < 50:
                 warnings.warn(
                     "Using num_levels < 50 in optimized mode may result in poor glyph quality. "
@@ -260,23 +260,145 @@ def image_to_glyph(image, scale_factor, font, with_bug, render_mode="original", 
             
             centroids = np.array(centroids)
             if len(centroids) > 0:
-                # Nearest-neighbor path construction
-                visited = np.zeros(len(centroids), dtype=bool)
-                path_order = [0]
-                visited[0] = True
-                for _ in range(1, len(centroids)):
-                    last = centroids[path_order[-1]]
-                    dists = np.linalg.norm(centroids - last, axis=1)
-                    dists[visited] = np.inf
-                    next_idx = np.argmin(dists)
-                    path_order.append(next_idx)
-                    visited[next_idx] = True
-                ordered_centroids = centroids[path_order]
-                # Draw path
-                pen.moveTo((ordered_centroids[0][0], ordered_centroids[0][1]))
-                for pt in ordered_centroids[1:]:
-                    pen.lineTo((pt[0], pt[1]))
-                pen.closePath()
+                if render_mode == "optimized_masked":
+                    # Create a mask from the original glyph
+                    mask = np.zeros_like(binary_img)
+                    
+                    # First, create a temporary mask for each path
+                    temp_masks = []
+                    for curve in path:
+                        temp_mask = np.zeros_like(mask)
+                        points = []
+                        points.append(curve.start_point)
+                        for segment in curve.segments:
+                            if segment.is_corner:
+                                points.extend([segment.c, segment.end_point])
+                            else:
+                                points.extend([segment.c1, segment.c2, segment.end_point])
+                        points = np.array(points).astype(np.int32)
+                        cv2.fillPoly(temp_mask, [points], 1)
+                        temp_masks.append(temp_mask)
+                    
+                    # Combine masks using XOR operation to handle holes
+                    mask = temp_masks[0]
+                    for temp_mask in temp_masks[1:]:
+                        mask = cv2.bitwise_xor(mask, temp_mask)
+                    
+                    # Dilate the mask to ensure we don't miss points near the boundary
+                    kernel = np.ones((3,3), np.uint8)
+                    mask = cv2.dilate(mask, kernel, iterations=2)
+                    
+                    if debug_dir:
+                        cv2.imwrite(os.path.join(debug_dir, "5_mask.png"), mask * 255)
+                    
+                    # Filter centroids that are inside the mask
+                    valid_centroids = []
+                    for centroid in centroids:
+                        x, y = centroid.astype(int)
+                        if 0 <= x < mask.shape[1] and 0 <= y < mask.shape[0]:
+                            # Check a small neighborhood around the centroid
+                            y1, y2 = max(0, y-1), min(mask.shape[0], y+2)
+                            x1, x2 = max(0, x-1), min(mask.shape[1], x+2)
+                            if np.any(mask[y1:y2, x1:x2] == 1):
+                                valid_centroids.append(centroid)
+                    
+                    if len(valid_centroids) > 0:
+                        centroids = np.array(valid_centroids)
+                        if debug:
+                            print(f"Filtered {len(centroids)} valid centroids from {len(all_points)} points")
+                    else:
+                        warnings.warn("No valid centroids found in masked area, falling back to original centroids")
+                    
+                    # Calculate maximum allowed distance between points
+                    # Use 20% of the image diagonal as threshold
+                    max_distance = np.sqrt(mask.shape[0]**2 + mask.shape[1]**2) * 0.2
+                    
+                    # Create a debug image for path visualization
+                    if debug_dir:
+                        path_debug = np.zeros((mask.shape[0], mask.shape[1], 3), dtype=np.uint8)
+                        path_debug[mask == 1] = [255, 255, 255]  # White for mask
+                    
+                    # Nearest-neighbor path construction with distance and intersection checks
+                    visited = np.zeros(len(centroids), dtype=bool)
+                    path_order = [0]
+                    visited[0] = True
+                    
+                    while not np.all(visited):
+                        current = centroids[path_order[-1]]
+                        dists = np.linalg.norm(centroids - current, axis=1)
+                        dists[visited] = np.inf
+                        
+                        # Find the closest unvisited point that:
+                        # 1. Is within max_distance
+                        # 2. Has a line that doesn't intersect with empty space
+                        valid_next = False
+                        while not valid_next and not np.all(np.isinf(dists)):
+                            next_idx = np.argmin(dists)
+                            next_point = centroids[next_idx]
+                            
+                            # Check distance
+                            if dists[next_idx] > max_distance:
+                                dists[next_idx] = np.inf
+                                continue
+                            
+                            # Check if line intersects empty space
+                            line_points = np.array([
+                                [int(current[0]), int(current[1])],
+                                [int(next_point[0]), int(next_point[1])]
+                            ])
+                            
+                            # Create a line mask
+                            line_mask = np.zeros_like(mask)
+                            cv2.line(line_mask, tuple(line_points[0]), tuple(line_points[1]), 1, 1)
+                            
+                            # Check if any point on the line is in empty space
+                            if np.any(np.logical_and(line_mask == 1, mask == 0)):
+                                dists[next_idx] = np.inf
+                                continue
+                            
+                            valid_next = True
+                            path_order.append(next_idx)
+                            visited[next_idx] = True
+                            
+                            if debug_dir:
+                                cv2.line(path_debug, tuple(line_points[0]), tuple(line_points[1]), [0, 255, 0], 1)
+                        
+                        if not valid_next:
+                            # If no valid next point found, start a new path
+                            unvisited = np.where(~visited)[0]
+                            if len(unvisited) > 0:
+                                path_order.append(unvisited[0])
+                                visited[unvisited[0]] = True
+                            else:
+                                break
+                    
+                    if debug_dir:
+                        cv2.imwrite(os.path.join(debug_dir, "6_path.png"), path_debug)
+                    
+                    ordered_centroids = centroids[path_order]
+                    # Draw path
+                    pen.moveTo((ordered_centroids[0][0], ordered_centroids[0][1]))
+                    for pt in ordered_centroids[1:]:
+                        pen.lineTo((pt[0], pt[1]))
+                    pen.closePath()
+                else:
+                    # Original optimized mode path construction
+                    visited = np.zeros(len(centroids), dtype=bool)
+                    path_order = [0]
+                    visited[0] = True
+                    for _ in range(1, len(centroids)):
+                        last = centroids[path_order[-1]]
+                        dists = np.linalg.norm(centroids - last, axis=1)
+                        dists[visited] = np.inf
+                        next_idx = np.argmin(dists)
+                        path_order.append(next_idx)
+                        visited[next_idx] = True
+                    ordered_centroids = centroids[path_order]
+                    # Draw path
+                    pen.moveTo((ordered_centroids[0][0], ordered_centroids[0][1]))
+                    for pt in ordered_centroids[1:]:
+                        pen.lineTo((pt[0], pt[1]))
+                    pen.closePath()
         else:
             # Original path processing
             for curve in path:
@@ -339,8 +461,8 @@ def image_to_glyph(image, scale_factor, font, with_bug, render_mode="original", 
                 )
             else:
                 glyph.coordinates[i] = (
-                    int(glyph.coordinates[-i][0] * final_scale_factor),
-                    int(glyph.coordinates[-i][1] * final_scale_factor)
+                    int(glyph.coordinates[-i][1] * final_scale_factor),
+                    int(glyph.coordinates[-i][0] * final_scale_factor)
                 )
 
         return glyph

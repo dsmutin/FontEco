@@ -48,6 +48,12 @@ def test_all_rendering_modes():
             "output": "test_outputs/optimized_mode_optimal.ttf"
         },
         {
+            "name": "optimized_masked",
+            "render_mode": "optimized_masked",
+            "num_levels": 100,  # Using same grid size as optimal optimized mode
+            "output": "test_outputs/optimized_mode_masked.ttf"
+        },
+        {
             "name": "optimized_aggressive",
             "render_mode": "optimized",
             "num_levels": 50,  # More aggressive optimization
