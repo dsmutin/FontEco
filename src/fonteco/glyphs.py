@@ -15,6 +15,8 @@ from fontTools.ttLib import TTFont
 from scipy.stats import qmc
 import cv2
 import potrace
+import os
+import warnings
 
 
 def decompose_glyph(glyph, glyph_set):
@@ -108,7 +110,7 @@ def test_perforation(input_font_path, output_test_path, reduction_percentage):
     print(f"Perforated font saved to {output_test_path}")
 
 
-def image_to_glyph(image, scale_factor, font, with_bug):
+def image_to_glyph(image, scale_factor, font, with_bug, render_mode="original", num_levels=4, debug_dir=None, debug=False):
     """
     Convert a dithered image to a glyph outline and update the font.
     
@@ -117,6 +119,10 @@ def image_to_glyph(image, scale_factor, font, with_bug):
         scale_factor (float or str): Either a numeric value for manual scaling or "AUTO" for automatic scaling
         font (fontTools.ttLib.TTFont): Font object to update with the new glyph
         with_bug (bool): If True, applies a special coordinate transformation
+        render_mode (str): Rendering mode to use ("original" or "simplified")
+        num_levels (int): Number of transparency levels for simplified mode
+        debug_dir (str): Directory to save debug images (if None, no debug images are saved)
+        debug (bool): If True, print debug information about the conversion process
         
     Returns:
         fontTools.ttLib.tables._g_l_y_f.Glyph: The converted glyph
@@ -125,8 +131,19 @@ def image_to_glyph(image, scale_factor, font, with_bug):
         ValueError: If the glyph has too many contours (> 65535)
         TypeError: If scale_factor is neither a number nor "AUTO"
     """
+    # Save initial image if debug is enabled
+    if debug_dir:
+        os.makedirs(debug_dir, exist_ok=True)
+        image.save(os.path.join(debug_dir, "1_initial.png"))
+
     # Convert PIL Image to NumPy array (OpenCV format)
     img = np.array(image)
+
+    if debug:
+        print(f"\nImage to glyph conversion debug:")
+        print(f"Initial image shape: {img.shape}")
+        print(f"Initial image min/max values: {img.min()}/{img.max()}")
+        print(f"Number of unique values: {len(np.unique(img))}")
 
     # Invert colors (Potrace expects black-on-white)
     img = cv2.bitwise_not(img)
@@ -135,20 +152,57 @@ def image_to_glyph(image, scale_factor, font, with_bug):
     if img.shape[0] > 512 or img.shape[1] > 512:
         img = cv2.resize(img, (256, 256), interpolation=cv2.INTER_AREA)
 
+    # Save dithered image if debug is enabled
+    if debug_dir:
+        cv2.imwrite(os.path.join(debug_dir, "2_dithered.png"), img)
+
+    # Apply simplification if using simplified mode
+    if render_mode == "simplified":
+        if num_levels < 4:
+            warnings.warn(
+                "Using num_levels < 4 in simplified mode may result in blank glyphs. "
+                "It is recommended to use at least 4 levels for proper rendering.",
+                UserWarning
+            )
+        from .dithering import simplify_image
+        simplified_img = simplify_image(Image.fromarray(img), num_levels, debug=debug)
+        img = np.array(simplified_img)
+        
+        if debug:
+            print(f"\nAfter simplification:")
+            print(f"Image shape: {img.shape}")
+            print(f"Image min/max values: {img.min()}/{img.max()}")
+            print(f"Number of unique values: {len(np.unique(img))}")
+        
+        # Save simplified image if debug is enabled
+        if debug_dir:
+            cv2.imwrite(os.path.join(debug_dir, "3_simplified.png"), img)
+
     # Threshold to binary (black/white)
-    _, binary_img = cv2.threshold(
-        img, 128, 1, cv2.THRESH_BINARY)  # Use 1 instead of 255
+    _, binary_img = cv2.threshold(img, 128, 1, cv2.THRESH_BINARY)
+
+    if debug:
+        print(f"\nAfter thresholding:")
+        print(f"Binary image shape: {binary_img.shape}")
+        print(f"Binary image min/max values: {binary_img.min()}/{binary_img.max()}")
+        print(f"Number of unique values: {len(np.unique(binary_img))}")
 
     # Ensure the image is in the correct format for Potrace
-    binary_img = binary_img.astype(np.uint8)  # Ensure data type is uint8
+    binary_img = binary_img.astype(np.uint8)
 
-    # Debug: Save the binary image
-    # Scale back to 0-255 for visualization
-    cv2.imwrite("debug_binary.png", binary_img * 255)
+    # Save binary image if debug is enabled
+    if debug_dir:
+        cv2.imwrite(os.path.join(debug_dir, "4_binary.png"), binary_img * 255)
 
     # Trace the image with Potrace
     bitmap = potrace.Bitmap(binary_img)
     path = bitmap.trace()
+
+    if debug:
+        print(f"\nAfter tracing:")
+        print(f"Number of paths: {len(path)}")
+        for i, curve in enumerate(path):
+            print(f"Path {i}: {len(curve.segments)} segments")
 
     # Initialize a new glyph pen
     pen = TTGlyphPen(font.getGlyphSet())
@@ -156,15 +210,15 @@ def image_to_glyph(image, scale_factor, font, with_bug):
     # Iterate over Potrace paths and convert to glyph outline
     for curve in path:
         start = curve.start_point
-        pen.moveTo((start[0], start[1]))  # Unpack tuple (x, y)
+        pen.moveTo((start[0], start[1]))
         for segment in curve.segments:
             if segment.is_corner:
-                pen.lineTo((segment.c[0], segment.c[1]))  # Unpack tuple (x, y)
+                pen.lineTo((segment.c[0], segment.c[1]))
                 pen.lineTo((segment.end_point[0], segment.end_point[1]))
             else:
                 pen.curveTo(
-                    (segment.c1[0], segment.c1[1]),  # Unpack tuple (x, y)
-                    (segment.c2[0], segment.c2[1]),  # Unpack tuple (x, y)
+                    (segment.c1[0], segment.c1[1]),
+                    (segment.c2[0], segment.c2[1]),
                     (segment.end_point[0], segment.end_point[1]),
                 )
         pen.closePath()
@@ -175,6 +229,11 @@ def image_to_glyph(image, scale_factor, font, with_bug):
     # Simplify the glyph outline if necessary
     if len(glyph.endPtsOfContours) > 65535:
         raise ValueError("Too many contours in glyph outline")
+
+    if debug:
+        print(f"\nFinal glyph:")
+        print(f"Number of contours: {len(glyph.endPtsOfContours)}")
+        print(f"Number of points: {len(glyph.coordinates)}")
 
     # Get font metrics for automatic scaling
     head_table = font['head']
@@ -188,15 +247,19 @@ def image_to_glyph(image, scale_factor, font, with_bug):
     
     # Determine the scale factor to use
     if scale_factor == "AUTO":
-        # Calculate the scale factor based on the image size and font metrics
-        # We want the glyph to maintain its original proportions relative to the em square
         image_height = img.shape[0]
         final_scale_factor = units_per_em / image_height
     else:
-        # Use the provided numeric scale factor
         final_scale_factor = float(scale_factor)
 
-    # Scale the glyph coordinates to fit within the TrueType format limits
+    if debug:
+        print(f"\nScaling:")
+        print(f"Units per em: {units_per_em}")
+        print(f"Ascender: {ascender}")
+        print(f"Descender: {descender}")
+        print(f"Final scale factor: {final_scale_factor}")
+
+    # Scale the glyph coordinates
     for i in range(len(glyph.coordinates)):
         if not with_bug:
             glyph.coordinates[i] = (
@@ -204,11 +267,9 @@ def image_to_glyph(image, scale_factor, font, with_bug):
                 int(glyph.coordinates[i][1] * -final_scale_factor + ascender)
             )
         else:
-            # very beauterful bug
             glyph.coordinates[i] = (
                 int(glyph.coordinates[-i][0] * final_scale_factor),
                 int(glyph.coordinates[-i][1] * final_scale_factor)
             )
 
-    # Update the glyph in the font
     return glyph

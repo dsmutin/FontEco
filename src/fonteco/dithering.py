@@ -59,3 +59,53 @@ def apply_blue_noise_dithering(image, sobol_points, point_size=1):
                 if 0 <= x < width and 0 <= y < height:
                     pixels[x, y] = 255  # Set pixel to white (remove dot)
     return image 
+
+
+def simplify_image(image, num_levels=4, debug=False):
+    """
+    Simplify an image by reducing the number of transparency levels.
+    
+    Args:
+        image (PIL.Image.Image): Input grayscale image to simplify
+        num_levels (int): Number of transparency levels to use (2-256)
+        debug (bool): If True, print debug information about the simplification process
+        
+    Returns:
+        PIL.Image.Image: Simplified image with reduced transparency levels
+        
+    Raises:
+        ValueError: If num_levels is not between 2 and 256
+    """
+    if not 2 <= num_levels <= 256:
+        raise ValueError("num_levels must be between 2 and 256")
+        
+    # Convert image to numpy array
+    img_array = np.array(image)
+    
+    if debug:
+        print(f"\nImage simplification debug:")
+        print(f"Input image shape: {img_array.shape}")
+        print(f"Input image min/max values: {img_array.min()}/{img_array.max()}")
+        print(f"Number of unique values: {len(np.unique(img_array))}")
+    
+    # Calculate the step size for each level
+    step = 256 // (num_levels - 1)
+    
+    # Create the new levels
+    levels = np.arange(0, 256, step)
+    if len(levels) > num_levels:
+        levels = levels[:num_levels]
+    
+    if debug:
+        print(f"Step size: {step}")
+        print(f"Levels: {levels}")
+    
+    # Quantize the image
+    quantized = np.digitize(img_array, levels) - 1
+    simplified = levels[quantized]
+    
+    if debug:
+        print(f"Output image min/max values: {simplified.min()}/{simplified.max()}")
+        print(f"Number of unique values in output: {len(np.unique(simplified))}")
+    
+    return Image.fromarray(simplified.astype(np.uint8)) 

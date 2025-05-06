@@ -9,6 +9,7 @@ from typing import Union
 from fontTools.ttLib import TTFont
 from PIL import Image, ImageDraw, ImageFont
 from tqdm import tqdm
+import os
 
 from .dithering import generate_sobol_sequence, apply_blue_noise_dithering
 from .glyphs import image_to_glyph, decompose_glyph
@@ -24,7 +25,10 @@ def perforate_font(
     scale_factor: Union[float, str] = "AUTO",
     test: bool = False,
     debug: bool = False,
-    progress_callback = None
+    progress_callback = None,
+    render_mode: str = "original",
+    num_levels: int = 2,
+    debug_dir: str = None
 ):
     """
     Perforate all glyphs in a font using Sobol' sequence and blue noise dithering.
@@ -40,6 +44,9 @@ def perforate_font(
         test (bool): If True, only processes the first 20 glyphs
         debug (bool): If True, prints detailed debug information
         progress_callback: Optional callback function to report progress (0-100)
+        render_mode (str): Rendering mode to use ("original" or "simplified")
+        num_levels (int): Number of transparency levels for simplified mode
+        debug_dir (str): Directory to save debug images (if None, no debug images are saved)
         
     Returns:
         None
@@ -238,7 +245,11 @@ def perforate_font(
         try:
             # Convert the dithered image back to a glyph outline
             font["glyf"][glyph_name] = image_to_glyph(
-                perforated_image, scale_factor, font, with_bug)
+                perforated_image, scale_factor, font, with_bug,
+                render_mode=render_mode,
+                num_levels=num_levels,
+                debug_dir=os.path.join(debug_dir, glyph_name) if debug_dir else None
+            )
 
             # Mark this glyph as modified
             modified_glyphs.add(glyph_name)
@@ -262,13 +273,44 @@ def perforate_font(
 
     # Modify the name table
     name_table = font['name']
+    if debug:
+        print("\nProcessing font names:")
+        print("Available name records:")
+        for name_record in name_table.names:
+            print(f"  ID: {name_record.nameID}, Platform: {name_record.platformID}, "
+                  f"Encoding: {name_record.platEncID}, Language: {name_record.langID}")
+    
     for name_record in name_table.names:
-        if name_record.nameID == 1:  # Font Family name      
-            original_name = name_record.string.decode('utf-16-be') if isinstance(name_record.string, bytes) else name_record.string
-            name_record.string = f"{original_name} Eco"
-        elif name_record.nameID == 4:  # Full font name
-            original_name = name_record.string.decode('utf-16-be') if isinstance(name_record.string, bytes) else name_record.string
-            name_record.string = f"{original_name} Eco"
+        try:
+            if debug:
+                print(f"\nProcessing name record {name_record.nameID}:")
+                print(f"  Platform: {name_record.platformID}")
+                print(f"  Encoding: {name_record.platEncID}")
+                print(f"  Language: {name_record.langID}")
+                print(f"  Raw string: {name_record.string}")
+            
+            if name_record.nameID == 1:  # Font Family name      
+                original_name = name_record.string.decode('utf-16-be') if isinstance(name_record.string, bytes) else name_record.string
+                name_record.string = f"{original_name} Eco"
+                if debug:
+                    print(f"  Modified family name: {name_record.string}")
+            elif name_record.nameID == 4:  # Full font name
+                original_name = name_record.string.decode('utf-16-be') if isinstance(name_record.string, bytes) else name_record.string
+                name_record.string = f"{original_name} Eco"
+                if debug:
+                    print(f"  Modified full name: {name_record.string}")
+        except UnicodeDecodeError:
+            if debug:
+                print(f"  Warning: UTF-16-BE decoding failed for name record {name_record.nameID}")
+            # If UTF-16-BE decoding fails, try other encodings or use a default name
+            if name_record.nameID == 1:  # Font Family name
+                name_record.string = "Font Eco"
+            elif name_record.nameID == 4:  # Full font name
+                name_record.string = "Font Eco"
+        except Exception as e:
+            if debug:
+                print(f"  Warning: Could not modify font name record {name_record.nameID}: {e}")
+            continue
 
     # Save the modified font
     font.save(output_font_path)
