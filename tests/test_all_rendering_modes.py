@@ -60,7 +60,7 @@ test_configs = [
         "shape_type": "rectangle",
         #"shape_size": "biggest",
         "shape_size": 20,
-        "margin": 20,
+        "margin": 5,
         "output": "test_outputs/shape_mode_rectangle.ttf"
     }
 ]

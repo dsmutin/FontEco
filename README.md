@@ -45,6 +45,46 @@ FontEco uses a sophisticated pipeline to create eco-friendly fonts by intelligen
    - Preserves font features and compatibility
    - Uses fontTools for font manipulation and optimization
 
+```mermaid
+graph TD
+    A[Input Font] --> B[Load Font]
+    B --> C[Process Each Glyph]
+    C --> D[Render Glyph to Image]
+    D --> E[Apply Blue Noise Dithering]
+    E --> F[Vectorize with Potrace]
+    
+    F --> G1[Original Mode]
+    F --> G2[Simplified Mode]
+    F --> G3[Optimized Mode]
+    F --> G4[Optimized Masked Mode]
+    
+    G1 --> H[Scale to Font Metrics]
+    G2 --> H
+    G3 --> H
+    G4 --> H
+    
+    H --> I[Update Font]
+    I --> J[Output Eco Font]
+    
+    subgraph "Blue Noise Dithering"
+        E1[Generate Sobol Sequence] --> E2[Calculate Points to Remove]
+        E2 --> E3[Apply Floyd-Steinberg Dithering]
+    end
+    
+    subgraph "Vectorization Modes"
+        G1 --> G1a[Default Potrace]
+        G2 --> G2a[Transparency Levels]
+        G3 --> G3a[Point Clustering]
+        G4 --> G4a[Boundary-Aware Clustering]
+    end
+    
+    E --> E1
+    F --> G1
+    F --> G2
+    F --> G3
+    F --> G4
+```
+
 ## Dithering Modes
 
 The library supports two main dithering modes:

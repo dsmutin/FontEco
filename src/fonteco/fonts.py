@@ -327,6 +327,11 @@ def perforate_font(
                 name_record.string = f"{original_name} Eco"
                 if debug:
                     print(f"  Modified full name: {name_record.string}")
+            elif name_record.nameID == 6:  # PostScript name
+                original_name = name_record.string.decode('utf-16-be') if isinstance(name_record.string, bytes) else name_record.string
+                name_record.string = f"{original_name}-Eco"
+                if debug:
+                    print(f"  Modified full name: {name_record.string}")
         except UnicodeDecodeError:
             if debug:
                 print(f"  Warning: UTF-16-BE decoding failed for name record {name_record.nameID}")
@@ -335,6 +340,8 @@ def perforate_font(
                 name_record.string = "Font Eco"
             elif name_record.nameID == 4:  # Full font name
                 name_record.string = "Font Eco"
+            elif name_record.nameID == 6:  # PostScript name
+                name_record.string = "Font-Eco"
         except Exception as e:
             if debug:
                 print(f"  Warning: Could not modify font name record {name_record.nameID}: {e}")
