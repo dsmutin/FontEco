@@ -58,10 +58,22 @@ test_configs = [
         "num_levels": None,
         "dithering_mode": "shape",
         "shape_type": "rectangle",
-        #"shape_size": "biggest",
         "shape_size": 20,
         "margin": 5,
         "output": "test_outputs/shape_mode_rectangle.ttf"
+    },
+    {
+        "name": "line_parallel_straight",
+        "render_mode": "original",
+        "num_levels": None,
+        "dithering_mode": "line",
+        "line_type": "parallel",
+        "curve_type": "curved",
+        "line_width": 2,
+        "curve": 1,
+        "margin": 5,
+        "num_random_lines": 10,
+        "output": "test_outputs/line_mode_parallel_straight.ttf"
     }
 ]
 
@@ -101,6 +113,13 @@ def test_rendering_mode(config, setup_test_environment):
     os.makedirs(test_debug_dir, exist_ok=True)
     
     # Run perforation
+    if config['name'][0:4] != "line":
+        config['line_type'] = None
+        config['curve_type'] = None
+        config['curve'] = None
+        config['line_width'] = None
+        config['num_random_lines'] = None
+
     perforate_font(
         input_font_path=SUBSET_FONT,
         output_font_path=config['output'],
@@ -117,7 +136,12 @@ def test_rendering_mode(config, setup_test_environment):
         debug_dir=test_debug_dir,
         shape_type=config.get('shape_type'),
         shape_size=config.get('shape_size'),
-        margin=config.get('margin')
+        margin=config.get('margin'),
+        line_type=config.get('line_type'),
+        curve_type=config.get('curve_type'),
+        line_width=config.get('line_width'),
+        curve=config.get('curve'),
+        num_random_lines=config.get('num_random_lines')
     )
     
     # Render comparison image

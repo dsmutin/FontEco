@@ -11,7 +11,7 @@ from PIL import Image, ImageDraw, ImageFont
 from tqdm import tqdm
 import os
 
-from .dithering import generate_sobol_sequence, apply_blue_noise_dithering, apply_shape_dithering
+from .dithering import generate_sobol_sequence, apply_blue_noise_dithering, apply_shape_dithering, apply_line_dithering
 from .glyphs import image_to_glyph, decompose_glyph
 
 
@@ -32,7 +32,12 @@ def perforate_font(
     debug_dir: str = None,
     shape_type: str = "circle",
     shape_size: Union[int, str] = 10,
-    margin: int = 1
+    margin: int = 1,
+    line_type: str = "parallel",
+    curve_type: str = "straight",
+    line_width: int = 1,
+    curve: int = 0,
+    num_random_lines: int = 10
 ):
     """
     Perforate all glyphs in a font using Sobol' sequence and blue noise dithering.
@@ -51,12 +56,12 @@ def perforate_font(
         dithering_mode (str): Dithering mode to use:
             - "blue_noise": Uses Sobol' sequence and blue noise dithering
             - "shape": Uses shape-based dithering with circles or rectangles
+            - "line": Uses line-based dithering with parallel or random lines
         render_mode (str): Rendering mode to use for glyph conversion:
             - "original": Uses Potrace's default path tracing
             - "simplified": Reduces the number of transparency levels (optimal: 4 levels)
             - "optimized": Uses point clustering and path optimization (optimal: 100 grid size)
             - "optimized_masked": Like optimized but ensures paths stay within glyph boundaries
-            - "shape": Uses shape-based dithering with circles or rectangles
         num_levels (int): Number of transparency levels for simplified mode (optimal: 4)
                          or grid size for optimized mode (optimal: 100)
         debug_dir (str): Directory to save debug images (if None, no debug images are saved)
@@ -66,6 +71,11 @@ def perforate_font(
             - "random": random size between margin*2 and max possible
             - "biggest": biggest possible size that fits
         margin (int): Minimum margin between shapes and edges for shape dithering
+        line_type (str): Type of line pattern for line dithering ("parallel" or "random")
+        curve_type (str): Type of curve for line dithering ("curved" or "straight")
+        line_width (int): Width of lines for line dithering
+        curve (int): Curvature amount for curved lines (0-100)
+        num_random_lines (int): Number of random lines to draw when line_type is "random"
         
     Returns:
         None
@@ -266,6 +276,17 @@ def perforate_font(
                 margin=margin,
                 shape_size=shape_size,
                 reduction_percentage=reduction_percentage
+            )
+        elif dithering_mode == "line":
+            perforated_image = apply_line_dithering(
+                image,
+                line_type=line_type,
+                curve_type=curve_type,
+                line_width=line_width,
+                curve=curve,
+                margin=margin,
+                reduction_percentage=reduction_percentage,
+                num_random_lines=num_random_lines
             )
         else:
             perforated_image = apply_blue_noise_dithering(image, sobol_points, point_size)

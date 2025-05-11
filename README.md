@@ -57,52 +57,42 @@ graph TD
 
 ## Dithering Modes
 
-The library supports two main dithering modes:
+The library supports three main dithering modes:
 
 ### 1. Blue Noise Dithering
 Uses Sobol' sequences to create a blue noise pattern for removing dots from glyphs. This creates a visually pleasing, random-looking pattern that maintains readability.
 
 ### 2. Shape-Based Dithering
-A new mode that removes dots in specific shapes (circles or rectangles) while maintaining readability. This mode offers more control over the visual appearance of the perforation.
+A mode that removes dots in specific shapes (circles or rectangles) while maintaining readability. This mode offers more control over the visual appearance of the perforation.
 
-```mermaid
-graph TD
-    A[Input Glyph] --> B{Choose Dithering Mode}
-    B -->|Blue Noise| C[Generate Sobol' Sequence]
-    B -->|Shape-Based| D[Find Black Pixels]
-    C --> E[Apply Blue Noise Dithering]
-    D --> F{Choose Shape Type}
-    F -->|Circle| G[Place Circles]
-    F -->|Rectangle| H[Place Rectangles]
-    G --> I[Check Margins & Overlaps]
-    H --> I
-    I --> J[Apply Shape Dithering]
-    E --> K[Output Glyph]
-    J --> K
-```
+### 3. Line-Based Dithering
+A new mode that removes dots by drawing lines across the glyphs. This mode offers several options for creating different line patterns:
 
-#### Shape Dithering Parameters
+- `line_type`: Type of line pattern
+  - `"parallel"`: Parallel lines at a fixed angle
+  - `"random"`: Random lines with random angles
 
-- `shape_type`: Type of shape to use
-  - `"circle"`: Circular perforations
-  - `"rectangle"`: Rectangular perforations
+- `curve_type`: Type of curve
+  - `"straight"`: Straight lines
+  - `"curved"`: Curved lines with adjustable curvature
 
-- `shape_size`: Size of the shapes
-  - Integer value: Exact size in pixels
-  - `"random"`: Random size between margin*2 and maximum possible
-  - `"biggest"`: Automatically finds the largest possible size that fits
-
-- `margin`: Minimum margin between shapes and edges (in pixels)
+- `line_width`: Width of the lines in pixels
+- `curve`: Curvature amount for curved lines (0-100)
+- `margin`: Minimum distance between lines
+- `num_random_lines`: Number of random lines to draw when using random line type
 
 Example usage:
 ```python
 perforate_font(
     input_font_path='fonts/Times.ttf',
     output_font_path='fonts/EcoTimes.ttf',
-    render_mode="shape",
-    shape_type="circle",
-    shape_size="biggest",
-    margin=1
+    dithering_mode="line",
+    line_type="parallel",
+    curve_type="curved",
+    line_width=2,
+    curve=5,
+    margin=1,
+    num_random_lines=10
 )
 ```
 
@@ -114,10 +104,13 @@ visualize_perforation(
     input_font_path='fonts/Times.ttf',
     output_test_path='test_output.png',
     reduction_percentage=20,
-    render_mode="shape",
-    shape_type="circle",
-    shape_size="biggest",
-    margin=1
+    dithering_mode="line",
+    line_type="parallel",
+    curve_type="curved",
+    line_width=2,
+    curve=5,
+    margin=1,
+    num_random_lines=10
 )
 ```
 
@@ -170,6 +163,7 @@ perforate_font(
 - `dithering_mode` (str):
   - "blue_noise": Uses Sobol' sequence and blue noise dithering for natural-looking dot patterns
   - "shape": Uses shape-based dithering with circles or rectangles
+  - "line": Uses line-based dithering with parallel or random lines
 - `shape_type` (str): Type of shape to use for shape dithering ("circle" or "rectangle"). Default: "circle"
 - `shape_size` (int or str): Size of shapes for shape dithering:
   - int: exact size in pixels
@@ -177,6 +171,10 @@ perforate_font(
   - "biggest": biggest possible size that fits
 - `margin` (int): Minimum margin between shapes and edges for shape dithering. Default: 1
 - `num_levels` (int): Number of transparency levels for simplified mode (optimal: 4) or grid size for optimized mode (optimal: 100). Default: 2
+- `line_type` (str): Type of line pattern for line-based dithering
+- `curve_type` (str): Type of curve for line-based dithering
+- `line_width` (int): Width of the lines in pixels for line-based dithering
+- `curve` (int): Curvature amount for curved lines in line-based dithering
 
 ## Features in Detail
 
@@ -207,4 +205,4 @@ MIT License
 
 ## Contributing
 
-Contributions are welcome! Please feel free to submit a Pull Request. 
+Contributions are welcome! Please feel free to submit a Pull Request.

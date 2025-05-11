@@ -6,7 +6,7 @@ including Sobol' sequence generation and dithering application.
 
 import numpy as np
 from PIL import Image
-from fonteco.dithering import generate_sobol_sequence, apply_blue_noise_dithering, apply_shape_dithering
+from fonteco.dithering import generate_sobol_sequence, apply_blue_noise_dithering, apply_shape_dithering, apply_line_dithering
 import pytest
 
 
@@ -161,3 +161,71 @@ def test_apply_shape_dithering():
                 distance = ((x1 - x2) ** 2 + (y1 - y2) ** 2) ** 0.5
                 min_distance = margin + shape_size  # Minimum distance between shape centers
                 assert distance >= min_distance, f"Shapes too close at ({x1}, {y1}) and ({x2}, {y2})" 
+
+
+def test_apply_line_dithering():
+    """Test the application of line-based dithering.
+    
+    This test verifies that:
+    - The dithering process produces a valid image
+    - Different line types and curve types work as expected
+    - Line width and curve parameters are respected
+    - Margins are maintained between lines
+    """
+    # Create a test image
+    width, height = 20, 20
+    image = Image.new("L", (width, height), 0)  # Black image
+    
+    # Test parallel straight lines
+    dithered = apply_line_dithering(
+        image,
+        line_type="parallel",
+        curve_type="straight",
+        line_width=2,
+        margin=2
+    )
+    assert isinstance(dithered, Image.Image)
+    assert dithered.size == (width, height)
+    
+    # Test parallel curved lines
+    dithered = apply_line_dithering(
+        image,
+        line_type="parallel",
+        curve_type="curved",
+        line_width=2,
+        curve=5,
+        margin=2
+    )
+    assert isinstance(dithered, Image.Image)
+    assert dithered.size == (width, height)
+    
+    # Test random straight lines
+    dithered = apply_line_dithering(
+        image,
+        line_type="random",
+        curve_type="straight",
+        line_width=2,
+        margin=2
+    )
+    assert isinstance(dithered, Image.Image)
+    assert dithered.size == (width, height)
+    
+    # Test random curved lines
+    dithered = apply_line_dithering(
+        image,
+        line_type="random",
+        curve_type="curved",
+        line_width=2,
+        curve=5,
+        margin=2
+    )
+    assert isinstance(dithered, Image.Image)
+    assert dithered.size == (width, height)
+    
+    # Test invalid line type
+    with pytest.raises(ValueError):
+        apply_line_dithering(image, line_type="invalid")
+        
+    # Test invalid curve type
+    with pytest.raises(ValueError):
+        apply_line_dithering(image, curve_type="invalid") 

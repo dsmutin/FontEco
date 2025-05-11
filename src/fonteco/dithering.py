@@ -283,3 +283,138 @@ def apply_shape_dithering(image, shape_type="circle", margin=1, shape_size=10, r
         placed_shapes.append((x, y, size))
                     
     return result
+
+def apply_line_dithering(image, line_type="parallel", curve_type="straight", line_width=1, curve=0, margin=1, reduction_percentage=20, num_random_lines=10):
+    """
+    Apply line-based dithering to an image.
+    
+    Args:
+        image (PIL.Image.Image): Input grayscale image to dither
+        line_type (str): Type of line pattern ("parallel" or "random")
+        curve_type (str): Type of curve ("curved" or "straight")
+        line_width (int): Width of the lines in pixels
+        curve (int): Curvature amount for curved lines (0-100)
+        margin (int): Minimum distance between lines
+        reduction_percentage (float): Percentage of black pixels to remove (0-100)
+        num_random_lines (int): Number of random lines to draw when line_type is "random"
+            
+    Returns:
+        PIL.Image.Image: Dithered image with white lines
+        
+    Raises:
+        ValueError: If line_type or curve_type is invalid
+    """
+    if line_type not in ["parallel", "random"]:
+        raise ValueError("line_type must be 'parallel' or 'random'")
+        
+    if curve_type not in ["curved", "straight"]:
+        raise ValueError("curve_type must be 'curved' or 'straight'")
+    
+    # Convert image to numpy array for easier manipulation
+    img_array = np.array(image)
+    width, height = image.size
+    
+    # Create a copy of the image to modify
+    result = image.copy()
+    pixels = result.load()
+    
+    # Find all black pixels
+    black_pixels = np.where(img_array == 0)
+    black_pixels = list(zip(black_pixels[1], black_pixels[0]))  # (x, y) format
+    
+    # Calculate number of lines to draw based on reduction percentage
+    num_lines = int(len(black_pixels) * (reduction_percentage / 100))
+    
+    if line_type == "parallel":
+        # Calculate line spacing based on margin
+        spacing = margin + line_width
+        
+        # Calculate number of lines that can fit
+        if curve_type == "straight":
+            num_parallel_lines = height // spacing
+        else:
+            # For curved lines, we need more space
+            num_parallel_lines = height // (spacing * 2)
+            
+        # Calculate angle for parallel lines (in degrees)
+        angle = 45  # Default angle
+        
+        # Calculate the maximum distance a line can travel
+        max_distance = int(np.sqrt(width**2 + height**2))
+        
+        for i in range(min(num_lines, num_parallel_lines)):
+            y = i * spacing
+            
+            if curve_type == "straight":
+                # Draw straight line
+                for t in range(-max_distance, max_distance):
+                    # Calculate rotated point
+                    rad_angle = np.radians(angle)
+                    x = t * np.cos(rad_angle)
+                    y_offset = t * np.sin(rad_angle)
+                    
+                    # Calculate the actual point on the line
+                    point_x = int(x + width/2)
+                    point_y = int(y + y_offset + height/2)
+                    
+                    if 0 <= point_x < width and 0 <= point_y < height:
+                        # Draw line with width
+                        for w in range(-line_width//2, line_width//2 + 1):
+                            if 0 <= point_y + w < height:
+                                pixels[point_x, point_y + w] = 255
+            else:
+                # Draw curved line
+                for t in range(-max_distance, max_distance):
+                    # Calculate curved path
+                    rad_angle = np.radians(angle)
+                    x = t * np.cos(rad_angle)
+                    y_offset = t * np.sin(rad_angle)
+                    
+                    # Add curve effect
+                    if curve > 0:
+                        curve_offset = int(curve * np.sin(t / max_distance * np.pi))
+                        y_offset += curve_offset
+                    
+                    # Calculate the actual point on the line
+                    point_x = int(x + width/2)
+                    point_y = int(y + y_offset + height/2)
+                    
+                    if 0 <= point_x < width and 0 <= point_y < height:
+                        # Draw line with width
+                        for w in range(-line_width//2, line_width//2 + 1):
+                            if 0 <= point_y + w < height:
+                                pixels[point_x, point_y + w] = 255
+    else:  # random
+        # Draw random lines
+        for _ in range(num_random_lines):
+            # Random start point
+            start_x = np.random.randint(0, width)
+            start_y = np.random.randint(0, height)
+            
+            # Random angle
+            angle = np.random.randint(0, 360)
+            rad_angle = np.radians(angle)
+            
+            # Draw line
+            length = np.random.randint(width//4, width//2)
+            for t in range(length):
+                if curve_type == "straight":
+                    x = int(start_x + t * np.cos(rad_angle))
+                    y = int(start_y + t * np.sin(rad_angle))
+                else:
+                    # Add curve effect
+                    if curve > 0:
+                        curve_offset = int(curve * np.sin(t / length * np.pi))
+                        x = int(start_x + t * np.cos(rad_angle) - curve_offset * np.sin(rad_angle))
+                        y = int(start_y + t * np.sin(rad_angle) + curve_offset * np.cos(rad_angle))
+                    else:
+                        x = int(start_x + t * np.cos(rad_angle))
+                        y = int(start_y + t * np.sin(rad_angle))
+                
+                if 0 <= x < width and 0 <= y < height:
+                    # Draw line with width
+                    for w in range(-line_width//2, line_width//2 + 1):
+                        if 0 <= y + w < height:
+                            pixels[x, y + w] = 255
+                    
+    return result

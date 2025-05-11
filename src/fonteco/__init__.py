@@ -8,7 +8,8 @@ dithering techniques to ensure even distribution of removed dots.
 from .dithering import (
     generate_sobol_sequence, 
     apply_blue_noise_dithering, 
-    apply_shape_dithering
+    apply_shape_dithering,
+    apply_line_dithering
 )
 from .testing import visualize_perforation
 from .glyphs import decompose_glyph, image_to_glyph
@@ -24,6 +25,7 @@ __all__ = [
     'generate_sobol_sequence',
     'apply_blue_noise_dithering',
     'apply_shape_dithering',
+    'apply_line_dithering',
     'decompose_glyph',
     'image_to_glyph',
     'perforate_font',
