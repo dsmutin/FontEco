@@ -52,32 +52,7 @@ graph TD
     C --> D[Render Glyph to Image]
     D --> E[Apply Dithering]
     E --> F[Vectorize with Potrace]
-    
-    F --> G1[Original Mode]
-    F --> G2[Simplified Mode]
-    F --> G3[Optimized Mode]
-    F --> G4[Optimized Masked Mode]
-    
-    G1 --> H[Scale to Font Metrics]
-    G2 --> H
-    G3 --> H
-    G4 --> H
-    
-    H --> I[Update Font]
-    I --> J[Output Eco Font]
-    
-    subgraph "Vectorization Modes"
-        G1 --> G1a[Default (Potrace)]
-        G2 --> G2a[Transparency simplification]
-        G3 --> G3a[Point clustering optimization]
-        G4 --> G4a[Boundary-Aware clustering optimization]
-    end
-    
-    E --> E1
-    F --> G1
-    F --> G2
-    F --> G3
-    F --> G4
+    F --> I[Output Eco Font]
 ```
 
 ## Dithering Modes
