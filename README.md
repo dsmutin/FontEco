@@ -21,7 +21,8 @@ FontEco uses a sophisticated pipeline to create eco-friendly fonts by intelligen
    - Automatic scaling to maintain proper proportions
    - Uses PIL (Python Imaging Library) for high-quality glyph rendering
 
-2. **Blue Noise Dithering**:
+2. **Dithering**:
+   - Several different algorithms implemented
    - Uses Sobol' sequence algorithm to generate a uniform distribution of points
    - Applies Floyd-Steinberg dithering with blue noise pattern
    - Configurable reduction percentage (default: 20%)
@@ -44,44 +45,70 @@ FontEco uses a sophisticated pipeline to create eco-friendly fonts by intelligen
    - Preserves font features and compatibility
    - Uses fontTools for font manipulation and optimization
 
+## Dithering Modes
+
+The library supports two main dithering modes:
+
+### 1. Blue Noise Dithering
+Uses Sobol' sequences to create a blue noise pattern for removing dots from glyphs. This creates a visually pleasing, random-looking pattern that maintains readability.
+
+### 2. Shape-Based Dithering
+A new mode that removes dots in specific shapes (circles or rectangles) while maintaining readability. This mode offers more control over the visual appearance of the perforation.
+
 ```mermaid
 graph TD
-    A[Input Font] --> B[Load Font]
-    B --> C[Process Each Glyph]
-    C --> D[Render Glyph to Image]
-    D --> E[Apply Blue Noise Dithering]
-    E --> F[Vectorize with Potrace]
-    
-    F --> G1[Original Mode]
-    F --> G2[Simplified Mode]
-    F --> G3[Optimized Mode]
-    F --> G4[Optimized Masked Mode]
-    
-    G1 --> H[Scale to Font Metrics]
-    G2 --> H
-    G3 --> H
-    G4 --> H
-    
-    H --> I[Update Font]
-    I --> J[Output Eco Font]
-    
-    subgraph "Blue Noise Dithering"
-        E1[Generate Sobol Sequence] --> E2[Calculate Points to Remove]
-        E2 --> E3[Apply Floyd-Steinberg Dithering]
-    end
-    
-    subgraph "Vectorization Modes"
-        G1 --> G1a[Default Potrace]
-        G2 --> G2a[Transparency Levels]
-        G3 --> G3a[Point Clustering]
-        G4 --> G4a[Boundary-Aware Clustering]
-    end
-    
-    E --> E1
-    F --> G1
-    F --> G2
-    F --> G3
-    F --> G4
+    A[Input Glyph] --> B{Choose Dithering Mode}
+    B -->|Blue Noise| C[Generate Sobol' Sequence]
+    B -->|Shape-Based| D[Find Black Pixels]
+    C --> E[Apply Blue Noise Dithering]
+    D --> F{Choose Shape Type}
+    F -->|Circle| G[Place Circles]
+    F -->|Rectangle| H[Place Rectangles]
+    G --> I[Check Margins & Overlaps]
+    H --> I
+    I --> J[Apply Shape Dithering]
+    E --> K[Output Glyph]
+    J --> K
+```
+
+#### Shape Dithering Parameters
+
+- `shape_type`: Type of shape to use
+  - `"circle"`: Circular perforations
+  - `"rectangle"`: Rectangular perforations
+
+- `shape_size`: Size of the shapes
+  - Integer value: Exact size in pixels
+  - `"random"`: Random size between margin*2 and maximum possible
+  - `"biggest"`: Automatically finds the largest possible size that fits
+
+- `margin`: Minimum margin between shapes and edges (in pixels)
+
+Example usage:
+```python
+perforate_font(
+    input_font_path='fonts/Times.ttf',
+    output_font_path='fonts/EcoTimes.ttf',
+    render_mode="shape",
+    shape_type="circle",
+    shape_size="biggest",
+    margin=1
+)
+```
+
+Visualization example:
+```python
+from fonteco.testing import visualize_perforation
+
+visualize_perforation(
+    input_font_path='fonts/Times.ttf',
+    output_test_path='test_output.png',
+    reduction_percentage=20,
+    render_mode="shape",
+    shape_type="circle",
+    shape_size="biggest",
+    margin=1
+)
 ```
 
 ## Installation

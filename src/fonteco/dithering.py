@@ -109,3 +109,177 @@ def simplify_image(image, num_levels=4, debug=False):
         print(f"Number of unique values in output: {len(np.unique(simplified))}")
     
     return Image.fromarray(simplified.astype(np.uint8)) 
+
+
+def _get_random_shape_size(min_size, max_size):
+    """Helper function to get a random shape size within bounds."""
+    raise Warning("This function is under development")
+    return np.random.randint(min_size, max_size + 1)
+
+def _get_biggest_possible_shape(image, x, y, margin, shape_type):
+    """Helper function to find the biggest possible shape size at given position."""
+    raise Warning("This function is under development")
+    width, height = image.size
+    pixels = image.load()
+    
+    # Start with maximum possible size
+    max_size = min(width, height)
+    
+    # Check each possible size from max down to minimum
+    for size in range(max_size, margin * 2, -1):
+        half_size = size // 2
+        
+        # Check if shape fits within image bounds with margin
+        if not (x - half_size >= margin and x + half_size < width - margin and
+                y - half_size >= margin and y + half_size < height - margin):
+            continue
+            
+        # Check if shape overlaps with any white pixels (glyph boundaries)
+        fits = True
+        if shape_type == "circle":
+            for dx in range(-half_size, half_size + 1):
+                for dy in range(-half_size, half_size + 1):
+                    if dx*dx + dy*dy <= half_size*half_size:
+                        if pixels[x + dx, y + dy] == 255:
+                            fits = False
+                            break
+                if not fits:
+                    break
+        else:  # rectangle
+            for dx in range(-half_size, half_size + 1):
+                for dy in range(-half_size, half_size + 1):
+                    if pixels[x + dx, y + dy] == 255:
+                        fits = False
+                        break
+                if not fits:
+                    break
+                    
+        if fits:
+            return size
+            
+    return margin * 2  # Return minimum size if no bigger shape fits
+
+def apply_shape_dithering(image, shape_type="circle", margin=1, shape_size=10, reduction_percentage=20):
+    """
+    Apply shape-based dithering to an image.
+    
+    Args:
+        image (PIL.Image.Image): Input grayscale image to dither
+        shape_type (str): Type of shape to use ("circle" or "rectangle")
+        margin (int): Minimum margin between shapes and edges, and between shapes
+        shape_size (int or str): Size of shapes. Can be:
+            - int: exact size
+            - "random": random size between margin*2 and max possible
+            - "biggest": biggest possible size that fits
+        reduction_percentage (float): Percentage of black pixels to remove (0-100)
+            
+    Returns:
+        PIL.Image.Image: Dithered image with white shapes
+        
+    Raises:
+        ValueError: If shape_type or shape_size is invalid
+    """
+    if shape_type not in ["circle", "rectangle"]:
+        raise ValueError("shape_type must be 'circle' or 'rectangle'")
+        
+    if not isinstance(shape_size, (int, str)) or (
+        isinstance(shape_size, str) and shape_size not in ["random", "biggest"]
+    ):
+        raise ValueError("shape_size must be an int, 'random', or 'biggest'")
+    
+    # Convert image to numpy array for easier manipulation
+    img_array = np.array(image)
+    width, height = image.size
+    
+    # Create a copy of the image to modify
+    result = image.copy()
+    pixels = result.load()
+    
+    # Find all black pixels (potential shape centers)
+    black_pixels = np.where(img_array == 0)
+    black_pixels = list(zip(black_pixels[1], black_pixels[0]))  # (x, y) format
+    
+    # Calculate number of shapes to place based on reduction percentage
+    num_shapes = int(len(black_pixels) * (reduction_percentage / 100))
+    
+    # Shuffle black pixels to randomize shape placement
+    np.random.shuffle(black_pixels)
+    
+    # Keep track of placed shapes (center points and sizes)
+    placed_shapes = []
+    
+    for x, y in black_pixels[:num_shapes]:
+        # Skip if pixel is already white
+        if pixels[x, y] == 255:
+            continue
+            
+        # Determine shape size
+        if isinstance(shape_size, int):
+            size = shape_size
+        elif shape_size == "random":
+            # Get maximum possible size first
+            max_size = _get_biggest_possible_shape(result, x, y, margin, shape_type)
+            # Then get random size between minimum and maximum
+            size = _get_random_shape_size(margin * 2, max_size)
+        else:  # biggest
+            size = _get_biggest_possible_shape(result, x, y, margin, shape_type)
+            
+        half_size = size // 2
+        
+        # Check if shape fits within image bounds with margin
+        if not (x - half_size >= margin and x + half_size < width - margin and
+                y - half_size >= margin and y + half_size < height - margin):
+            continue
+            
+        # Check if shape overlaps with any existing shapes
+        overlaps = False
+        for center_x, center_y, shape_size in placed_shapes:
+            # Calculate distance between shape centers
+            distance = ((x - center_x) ** 2 + (y - center_y) ** 2) ** 0.5
+            # Shapes should be at least margin + half_size + other_shape_half_size apart
+            min_distance = margin + half_size + shape_size // 2
+            if distance < min_distance:
+                overlaps = True
+                break
+                    
+        if overlaps:
+            continue
+            
+        # Check if shape overlaps with any white pixels (glyph boundaries)
+        overlaps = False
+        if shape_type == "circle":
+            for dx in range(-half_size, half_size + 1):
+                for dy in range(-half_size, half_size + 1):
+                    if dx*dx + dy*dy <= half_size*half_size:
+                        if pixels[x + dx, y + dy] == 255:
+                            overlaps = True
+                            break
+                if overlaps:
+                    break
+        else:  # rectangle
+            for dx in range(-half_size, half_size + 1):
+                for dy in range(-half_size, half_size + 1):
+                    if pixels[x + dx, y + dy] == 255:
+                        overlaps = True
+                        break
+                if overlaps:
+                    break
+                    
+        if overlaps:
+            continue
+            
+        # Draw the shape
+        if shape_type == "circle":
+            for dx in range(-half_size, half_size + 1):
+                for dy in range(-half_size, half_size + 1):
+                    if dx*dx + dy*dy <= half_size*half_size:
+                        pixels[x + dx, y + dy] = 255
+        else:  # rectangle
+            for dx in range(-half_size, half_size + 1):
+                for dy in range(-half_size, half_size + 1):
+                    pixels[x + dx, y + dy] = 255
+                    
+        # Record the placed shape
+        placed_shapes.append((x, y, size))
+                    
+    return result

@@ -5,7 +5,11 @@ removing dots from glyphs while maintaining readability. It uses blue noise
 dithering techniques to ensure even distribution of removed dots.
 """
 
-from .dithering import generate_sobol_sequence, apply_blue_noise_dithering
+from .dithering import (
+    generate_sobol_sequence, 
+    apply_blue_noise_dithering, 
+    apply_shape_dithering
+)
 from .testing import visualize_perforation
 from .glyphs import decompose_glyph, image_to_glyph
 from .fonts import perforate_font
@@ -19,6 +23,7 @@ __all__ = [
     'visualize_perforation',
     'generate_sobol_sequence',
     'apply_blue_noise_dithering',
+    'apply_shape_dithering',
     'decompose_glyph',
     'image_to_glyph',
     'perforate_font',

@@ -11,7 +11,7 @@ from PIL import Image, ImageDraw, ImageFont
 from tqdm import tqdm
 import os
 
-from .dithering import generate_sobol_sequence, apply_blue_noise_dithering
+from .dithering import generate_sobol_sequence, apply_blue_noise_dithering, apply_shape_dithering
 from .glyphs import image_to_glyph, decompose_glyph
 
 
@@ -26,9 +26,13 @@ def perforate_font(
     test: bool = False,
     debug: bool = False,
     progress_callback = None,
+    dithering_mode: str = "blue_noise",
     render_mode: str = "original",
     num_levels: int = 2,
-    debug_dir: str = None
+    debug_dir: str = None,
+    shape_type: str = "circle",
+    shape_size: Union[int, str] = 10,
+    margin: int = 1
 ):
     """
     Perforate all glyphs in a font using Sobol' sequence and blue noise dithering.
@@ -44,14 +48,24 @@ def perforate_font(
         test (bool): If True, only processes the first 20 glyphs
         debug (bool): If True, prints detailed debug information
         progress_callback: Optional callback function to report progress (0-100)
+        dithering_mode (str): Dithering mode to use:
+            - "blue_noise": Uses Sobol' sequence and blue noise dithering
+            - "shape": Uses shape-based dithering with circles or rectangles
         render_mode (str): Rendering mode to use for glyph conversion:
             - "original": Uses Potrace's default path tracing
             - "simplified": Reduces the number of transparency levels (optimal: 4 levels)
             - "optimized": Uses point clustering and path optimization (optimal: 100 grid size)
             - "optimized_masked": Like optimized but ensures paths stay within glyph boundaries
+            - "shape": Uses shape-based dithering with circles or rectangles
         num_levels (int): Number of transparency levels for simplified mode (optimal: 4)
                          or grid size for optimized mode (optimal: 100)
         debug_dir (str): Directory to save debug images (if None, no debug images are saved)
+        shape_type (str): Type of shape to use for shape dithering ("circle" or "rectangle")
+        shape_size (int or str): Size of shapes for shape dithering:
+            - int: exact size
+            - "random": random size between margin*2 and max possible
+            - "biggest": biggest possible size that fits
+        margin (int): Minimum margin between shapes and edges for shape dithering
         
     Returns:
         None
@@ -244,8 +258,17 @@ def perforate_font(
         sobol_points = generate_sobol_sequence(
             image_size[0], image_size[1], num_points)
 
-        # Apply blue noise dithering
-        perforated_image = apply_blue_noise_dithering(image, sobol_points, point_size)
+        # Apply dithering based on render mode
+        if dithering_mode == "shape":
+            perforated_image = apply_shape_dithering(
+                image, 
+                shape_type=shape_type,
+                margin=margin,
+                shape_size=shape_size,
+                reduction_percentage=reduction_percentage
+            )
+        else:
+            perforated_image = apply_blue_noise_dithering(image, sobol_points, point_size)
 
         try:
             # Convert the dithered image back to a glyph outline
