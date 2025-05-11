@@ -44,8 +44,13 @@ def perforate_font(
         test (bool): If True, only processes the first 20 glyphs
         debug (bool): If True, prints detailed debug information
         progress_callback: Optional callback function to report progress (0-100)
-        render_mode (str): Rendering mode to use ("original" or "simplified")
-        num_levels (int): Number of transparency levels for simplified mode
+        render_mode (str): Rendering mode to use for glyph conversion:
+            - "original": Uses Potrace's default path tracing
+            - "simplified": Reduces the number of transparency levels (optimal: 4 levels)
+            - "optimized": Uses point clustering and path optimization (optimal: 100 grid size)
+            - "optimized_masked": Like optimized but ensures paths stay within glyph boundaries
+        num_levels (int): Number of transparency levels for simplified mode (optimal: 4)
+                         or grid size for optimized mode (optimal: 100)
         debug_dir (str): Directory to save debug images (if None, no debug images are saved)
         
     Returns:

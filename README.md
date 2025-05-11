@@ -9,6 +9,7 @@ FontEco is a Python tool for creating eco-friendly fonts by perforating existing
 - Font perforation with configurable reduction percentage
 - Support for both Latin and Cyrillic characters
 - Automatic scaling and optimization
+- Multiple rendering modes for different use cases
 
 ## How It Works
 
@@ -28,6 +29,11 @@ FontEco uses a sophisticated pipeline to create eco-friendly fonts by intelligen
 
 3. **Vectorization**:
    - Converts the dithered image back to vector outlines using Potrace algorithm
+   - Multiple rendering modes available for different use cases:
+     - Original: Uses Potrace's default path tracing
+     - Simplified: Reduces the number of transparency levels (optimal: 4 levels)
+     - Optimized: Uses point clustering and path optimization (optimal: 100 grid size)
+     - Optimized Masked: Like optimized but ensures paths stay within glyph boundaries
    - Applies Douglas-Peucker algorithm for path simplification
    - Uses Bézier curve fitting for smooth outlines
    - Optimizes control points using distance-based filtering
@@ -45,8 +51,17 @@ graph TD
     C --> D[Render Glyph to Image]
     D --> E[Apply Blue Noise Dithering]
     E --> F[Vectorize with Potrace]
-    F --> G[Simplify Paths]
-    G --> H[Scale to Font Metrics]
+    
+    F --> G1[Original Mode]
+    F --> G2[Simplified Mode]
+    F --> G3[Optimized Mode]
+    F --> G4[Optimized Masked Mode]
+    
+    G1 --> H[Scale to Font Metrics]
+    G2 --> H
+    G3 --> H
+    G4 --> H
+    
     H --> I[Update Font]
     I --> J[Output Eco Font]
     
@@ -55,13 +70,18 @@ graph TD
         E2 --> E3[Apply Floyd-Steinberg Dithering]
     end
     
-    subgraph "Vectorization"
-        F1[Potrace Algorithm] --> F2[Bézier Curve Fitting]
-        F2 --> F3[Douglas-Peucker Simplification]
+    subgraph "Vectorization Modes"
+        G1 --> G1a[Default Potrace]
+        G2 --> G2a[Transparency Levels]
+        G3 --> G3a[Point Clustering]
+        G4 --> G4a[Boundary-Aware Clustering]
     end
     
     E --> E1
-    F --> F1
+    F --> G1
+    F --> G2
+    F --> G3
+    F --> G4
 ```
 
 ## Installation
@@ -96,7 +116,9 @@ perforate_font(
     draw_images=False,       # Default: False
     scale_factor="AUTO",     # Default: "AUTO"
     test=False,              # Default: False
-    debug=False              # Default: False
+    debug=False,             # Default: False
+    render_mode="original",  # Default: "original"
+    num_levels=2            # Default: 2
 )
 ```
 
@@ -110,6 +132,12 @@ perforate_font(
 - `scale_factor` (float or str): Scaling factor for glyph coordinates. Use "AUTO" for automatic scaling. Default: "AUTO"
 - `test` (bool): Process only first 20 glyphs for testing. Default: False
 - `debug` (bool): Print detailed debug information. Default: False
+- `render_mode` (str): Rendering mode to use for glyph conversion:
+  - "original": Uses Potrace's default path tracing
+  - "simplified": Reduces the number of transparency levels (optimal: 4 levels)
+  - "optimized": Uses point clustering and path optimization (optimal: 100 grid size)
+  - "optimized_masked": Like optimized but ensures paths stay within glyph boundaries
+- `num_levels` (int): Number of transparency levels for simplified mode (optimal: 4) or grid size for optimized mode (optimal: 100). Default: 2
 
 ## Features in Detail
 
@@ -117,6 +145,11 @@ perforate_font(
 - **Cyrillic Support**: Handles both Latin and Cyrillic characters, including composite glyphs
 - **Progress Tracking**: Shows a progress bar during font processing
 - **Debug Mode**: Optional detailed logging of glyph processing steps
+- **Multiple Rendering Modes**: Choose the best rendering approach for your needs:
+  - Original mode for standard perforation
+  - Simplified mode for reduced complexity
+  - Optimized mode for better path construction
+  - Optimized masked mode for boundary-aware perforation
 
 ## Requirements
 
