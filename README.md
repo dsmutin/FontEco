@@ -50,7 +50,7 @@ graph TD
     A[Input Font] --> B[Load Font]
     B --> C[Process Each Glyph]
     C --> D[Render Glyph to Image]
-    D --> E[Apply Blue Noise Dithering]
+    D --> E[Apply Dithering]
     E --> F[Vectorize with Potrace]
     
     F --> G1[Original Mode]
@@ -66,16 +66,11 @@ graph TD
     H --> I[Update Font]
     I --> J[Output Eco Font]
     
-    subgraph "Blue Noise Dithering"
-        E1[Generate Sobol Sequence] --> E2[Calculate Points to Remove]
-        E2 --> E3[Apply Floyd-Steinberg Dithering]
-    end
-    
     subgraph "Vectorization Modes"
-        G1 --> G1a[Default Potrace]
-        G2 --> G2a[Transparency Levels]
-        G3 --> G3a[Point Clustering]
-        G4 --> G4a[Boundary-Aware Clustering]
+        G1 --> G1a[Default (Potrace)]
+        G2 --> G2a[Transparency simplification]
+        G3 --> G3a[Point clustering optimization]
+        G4 --> G4a[Boundary-Aware clustering optimization]
     end
     
     E --> E1
@@ -178,14 +173,7 @@ from fonteco.fonts import perforate_font
 perforate_font(
     input_font_path='fonts/Times.ttf',
     output_font_path='fonts/EcoTimes.ttf',
-    reduction_percentage=20,  # Default: 20%
-    with_bug=False,          # Default: False
-    draw_images=False,       # Default: False
-    scale_factor="AUTO",     # Default: "AUTO"
-    test=False,              # Default: False
-    debug=False,             # Default: False
-    render_mode="original",  # Default: "original"
-    num_levels=2            # Default: 2
+    reduction_percentage=20  # Default: 20%
 )
 ```
 
@@ -204,6 +192,15 @@ perforate_font(
   - "simplified": Reduces the number of transparency levels (optimal: 4 levels)
   - "optimized": Uses point clustering and path optimization (optimal: 100 grid size)
   - "optimized_masked": Like optimized but ensures paths stay within glyph boundaries
+- `dithering_mode` (str):
+  - "blue_noise": Uses Sobol' sequence and blue noise dithering for natural-looking dot patterns
+  - "shape": Uses shape-based dithering with circles or rectangles
+- `shape_type` (str): Type of shape to use for shape dithering ("circle" or "rectangle"). Default: "circle"
+- `shape_size` (int or str): Size of shapes for shape dithering:
+  - int: exact size in pixels
+  - "random": random size between margin*2 and maximum possible
+  - "biggest": biggest possible size that fits
+- `margin` (int): Minimum margin between shapes and edges for shape dithering. Default: 1
 - `num_levels` (int): Number of transparency levels for simplified mode (optimal: 4) or grid size for optimized mode (optimal: 100). Default: 2
 
 ## Features in Detail
