@@ -1,15 +1,19 @@
 # FontEco <a href = ""><img src="misc/ecofont_logo.png" alt="FontEco Logo" align="right" width="150"></a>
 
-FontEco is a Python tool for creating eco-friendly fonts by perforating existing fonts using Sobol' sequence and blue noise dithering techniques. This process reduces the amount of ink needed to print text while maintaining readability.
+[![python package](https://github.com/dsmutin/FontEco/actions/workflows/python-package.yml/badge.svg)](https://github.com/ctlab/samovar/actions/workflows/python-package.yaml)
+
+FontEco is a Python tool for creating eco-friendly fonts
+
+This process reduces the amount of ink needed to print text while maintaining readability.
 
 ## Features
 
 - Making your fonts more "eco-friendly"
-- Blue noise dithering using Sobol' sequences
-- Font perforation with configurable reduction percentage
-- Support for both Latin and Cyrillic characters
-- Automatic scaling and optimization
-- Multiple rendering modes for different use cases
+- Different dithering modes:
+  - Blue Noize
+  - Shape
+  - Line
+- Customizable applications
 
 ## How It Works
 
@@ -66,53 +70,7 @@ Uses Sobol' sequences to create a blue noise pattern for removing dots from glyp
 A mode that removes dots in specific shapes (circles or rectangles) while maintaining readability. This mode offers more control over the visual appearance of the perforation.
 
 ### 3. Line-Based Dithering
-A new mode that removes dots by drawing lines across the glyphs. This mode offers several options for creating different line patterns:
-
-- `line_type`: Type of line pattern
-  - `"parallel"`: Parallel lines at a fixed angle
-  - `"random"`: Random lines with random angles
-
-- `curve_type`: Type of curve
-  - `"straight"`: Straight lines
-  - `"curved"`: Curved lines with adjustable curvature
-
-- `line_width`: Width of the lines in pixels
-- `curve`: Curvature amount for curved lines (0-100)
-- `margin`: Minimum distance between lines
-- `num_random_lines`: Number of random lines to draw when using random line type
-
-Example usage:
-```python
-perforate_font(
-    input_font_path='fonts/Times.ttf',
-    output_font_path='fonts/EcoTimes.ttf',
-    dithering_mode="line",
-    line_type="parallel",
-    curve_type="curved",
-    line_width=2,
-    curve=5,
-    margin=1,
-    num_random_lines=10
-)
-```
-
-Visualization example:
-```python
-from fonteco.testing import visualize_perforation
-
-visualize_perforation(
-    input_font_path='fonts/Times.ttf',
-    output_test_path='test_output.png',
-    reduction_percentage=20,
-    dithering_mode="line",
-    line_type="parallel",
-    curve_type="curved",
-    line_width=2,
-    curve=5,
-    margin=1,
-    num_random_lines=10
-)
-```
+A mode that removes dots by drawing lines across the glyphs. This mode offers several options for creating different line patterns.
 
 ## Installation
 
@@ -122,7 +80,13 @@ git clone https://github.com/yourusername/FontEco.git
 cd FontEco
 ```
 
-2. Install dependencies:
+2. Install system dependencies:
+```bash
+sudo apt-get update
+sudo apt-get install -y build-essential python3-dev libagg-dev libpotrace-dev pkg-config
+```
+
+3. Install dependencies:
 ```bash
 pip install -r requirements.txt
 ```
@@ -198,8 +162,6 @@ perforate_font(
 - potrace + pypotrace
 - scipy (for dithering)
 - tqdm (for progress bar)
-
-## License
 
 MIT License
 
