@@ -441,7 +441,7 @@ def image_to_glyph(image, scale_factor, font, with_bug, render_mode="original", 
         # Determine the scale factor to use
         if scale_factor == "AUTO":
             image_height = img.shape[0]
-            final_scale_factor = units_per_em / image_height
+            final_scale_factor = units_per_em / image_height * 1.6
         else:
             final_scale_factor = float(scale_factor)
 

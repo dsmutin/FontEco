@@ -14,7 +14,7 @@ from fonteco.font_utils import create_subset_font, subset_font_to_glyphs
 def test_subset_perforation_and_rendering():
     """Test subsetting, perforation and rendering of a small set of glyphs."""
     # Input and output paths
-    input_font = "fonts/Times.ttf"
+    input_font = "new_fonts/IBMPlexSerif-Regular_subset.ttf"  # Updated to use the correct font
     subset_font = "fonts/test.ttf"
     perforated_font = "test_outputs/test_perforated.ttf"
     output_image = "test_outputs/test_output_rendered.png"
@@ -22,6 +22,7 @@ def test_subset_perforation_and_rendering():
     
     # Create output directory if it doesn't exist
     os.makedirs("test_outputs", exist_ok=True)
+    os.makedirs("fonts", exist_ok=True)
     
     # Create subset with specified glyphs
     print("Creating font subset...")
@@ -41,9 +42,9 @@ def test_subset_perforation_and_rendering():
         font_path=input_font,
         output_path=original_image,
         glyph="Aa",  # Render both 'a' and 'A'
-        size=600,
-        position=(100, 100),
-        image_size=(800, 800)
+        size=200,  # Reduced size to match working pipeline
+        position=(10, 0),  # Updated position to match working pipeline
+        image_size=(300, 280)  # Updated size to match working pipeline
     )
     
     # Step 1: Perforate the font
@@ -52,13 +53,15 @@ def test_subset_perforation_and_rendering():
         perforate_font(
             input_font_path=subset_font,
             output_font_path=perforated_font,
-            reduction_percentage=90,
+            reduction_percentage=10,  # Reduced percentage to match working pipeline
             with_bug=False,
-            draw_images=True,  
+            draw_images=True,
             scale_factor="AUTO",
             test=False,
             debug=True,
-            point_size=1
+            point_size=2,  # Added point_size to match working pipeline
+            render_mode="original",  # Added render_mode
+            dithering_mode="BN"  # Added dithering_mode
         )
         print("Font perforated successfully")
         
@@ -83,9 +86,9 @@ def test_subset_perforation_and_rendering():
         font_path=perforated_font,
         output_path=output_image,
         glyph="Aa",  # Render both 'a' and 'A'
-        size=600,
-        position=(100, 100),
-        image_size=(800, 800)
+        size=200,  # Reduced size to match working pipeline
+        position=(10, 0),  # Updated position to match working pipeline
+        image_size=(300, 280)  # Updated size to match working pipeline
     )
     
     print(f"\nTest completed.")

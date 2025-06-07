@@ -35,6 +35,9 @@ ENV/
 *.swo
 
 # Project specific
+new_fonts*
+small*
+pipeline*
 debug_*.png
 perforated_*.png
 *.ttf

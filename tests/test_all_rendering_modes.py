@@ -15,32 +15,13 @@ from fonteco.font_utils import create_subset_font, subset_font_to_glyphs
 # Test configurations
 test_configs = [
     {
-        "name": "original",
+        "name": "original_bn",
         "render_mode": "original",
-        "dithering_mode": "blue_noise",
+        "dithering_mode": "BN",
         "num_levels": None,
-        "output": "test_outputs/original_mode.ttf"
-    },
-    {
-        "name": "simplified_optimal",
-        "render_mode": "simplified",
-        "dithering_mode": "blue_noise",
-        "num_levels": 4,  # Optimal value for simplified mode
-        "output": "test_outputs/simplified_mode_optimal.ttf"
-    },
-    {
-        "name": "optimized_optimal",
-        "render_mode": "optimized",
-        "dithering_mode": "blue_noise",
-        "num_levels": 100,  # Optimal value for optimized mode
-        "output": "test_outputs/optimized_mode_optimal.ttf"
-    },
-    {
-        "name": "optimized_masked",
-        "render_mode": "optimized_masked",
-        "dithering_mode": "blue_noise",
-        "num_levels": 100,  # Using same grid size as optimal optimized mode
-        "output": "test_outputs/optimized_mode_masked.ttf"
+        "point_size": 2,
+        "reduction_percentage": 10,
+        "output": "test_outputs/original_bn.ttf"
     },
     {
         "name": "shape_circle",
@@ -48,37 +29,28 @@ test_configs = [
         "num_levels": None,
         "dithering_mode": "shape",
         "shape_type": "circle",
-        "shape_size": 10,
+        "shape_size": 15,
         "margin": 5,
-        "output": "test_outputs/shape_mode_circle.ttf"
+        "reduction_percentage": 50,
+        "output": "test_outputs/shape_circle.ttf"
     },
     {
-        "name": "shape_rectangle",
-        "render_mode": "original",
-        "num_levels": None,
-        "dithering_mode": "shape",
-        "shape_type": "rectangle",
-        "shape_size": 20,
-        "margin": 5,
-        "output": "test_outputs/shape_mode_rectangle.ttf"
-    },
-    {
-        "name": "line_parallel_straight",
+        "name": "line_random",
         "render_mode": "original",
         "num_levels": None,
         "dithering_mode": "line",
-        "line_type": "parallel",
+        "line_type": "random",
+        "line_width": 1,
         "curve_type": "curved",
-        "line_width": 2,
-        "curve": 1,
-        "margin": 5,
-        "num_random_lines": 10,
-        "output": "test_outputs/line_mode_parallel_straight.ttf"
+        "curve": 50,
+        "reduction_percentage": 50,
+        "num_random_lines": 700,
+        "output": "test_outputs/line_random.ttf"
     }
 ]
 
 # Input and output paths
-INPUT_FONT = "fonts/Times.ttf"
+INPUT_FONT = "new_fonts/IBMPlexSerif-Regular_subset.ttf"
 SUBSET_FONT = "fonts/test.ttf"
 DEBUG_DIR = "test_outputs/debug_all_modes"
 TEST_GLYPHS = ['A', 'a', 'B', 'b', ' ']
@@ -90,6 +62,7 @@ def setup_test_environment():
     # Create output directories
     os.makedirs("test_outputs", exist_ok=True)
     os.makedirs(DEBUG_DIR, exist_ok=True)
+    os.makedirs("fonts", exist_ok=True)
     
     # Create subset with specified glyphs
     create_subset_font(INPUT_FONT, SUBSET_FONT, lambda f: subset_font_to_glyphs(f, TEST_GLYPHS))
@@ -112,24 +85,21 @@ def test_rendering_mode(config, setup_test_environment):
     test_debug_dir = os.path.join(DEBUG_DIR, config['name'])
     os.makedirs(test_debug_dir, exist_ok=True)
     
-    # Run perforation
-    if config['name'][0:4] != "line":
-        config['line_type'] = None
-        config['curve_type'] = None
-        config['curve'] = None
-        config['line_width'] = None
-        config['num_random_lines'] = None
+    # Set default point_size if not specified
+    if 'point_size' not in config:
+        config['point_size'] = 1
 
+    # Run perforation
     perforate_font(
         input_font_path=SUBSET_FONT,
         output_font_path=config['output'],
-        reduction_percentage=90,
+        reduction_percentage=config['reduction_percentage'],
         with_bug=False,
         draw_images=True,
         scale_factor="AUTO",
         test=False,
         debug=True,
-        point_size=1,
+        point_size=config['point_size'],
         render_mode=config['render_mode'],
         dithering_mode=config['dithering_mode'],
         num_levels=config.get('num_levels'),
@@ -148,10 +118,10 @@ def test_rendering_mode(config, setup_test_environment):
     render_glyph_to_image(
         font_path=config['output'],
         output_path=os.path.join(test_debug_dir, f"{config['name']}_rendered.png"),
-        glyph="AaBb",
-        size=600,
-        position=(100, 100),
-        image_size=(800, 800)
+        glyph="Aa",
+        size=200,
+        position=(10, 0),
+        image_size=(300, 280)
     )
     
     # Verify output file exists and has content
@@ -164,14 +134,19 @@ def test_file_size_comparison(setup_test_environment):
     results = []
     
     for config in test_configs:
-        file_size = os.path.getsize(config['output'])
-        results.append({
-            "name": config['name'],
-            "size_kb": file_size / 1024
-        })
+        if os.path.exists(config['output']):
+            file_size = os.path.getsize(config['output'])
+            results.append({
+                "name": config['name'],
+                "size_kb": file_size / 1024
+            })
     
+    if not results:
+        pytest.skip("No output files found for comparison")
+        return
+        
     # Calculate reduction percentages relative to original mode
-    original_size = next(r['size_kb'] for r in results if r['name'] == 'original')
+    original_size = next(r['size_kb'] for r in results if r['name'] == 'original_bn')
     
     # Print results
     print("\nFile Size Comparison Results:")

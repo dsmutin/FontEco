@@ -94,7 +94,7 @@ def perforate_font(
     draw = ImageDraw.Draw(image)
 
     # Load the font into PIL for rendering
-    pil_font = ImageFont.truetype(input_font_path, size=400)
+    pil_font = ImageFont.truetype(input_font_path, size=300)
 
     # Get the font's character map (cmap)
     cmap = font.getBestCmap()
@@ -105,15 +105,15 @@ def perforate_font(
     # Special handling for problematic Cyrillic characters
     cyrillic_special_cases = {
         'uni041D': 'H',  # Н
-        'uni041F': 'P',  # П
-        'uni042D': 'E',  # Э
-        'uni042F': 'R',  # Я
-        'uni044D': 'e',  # э
-        'uni044F': 'r',  # я
+        'uni041F': 'П',  # П
+        'uni042D': 'Э',  # Э
+        'uni042F': 'Я',  # Я
+        'uni044D': 'э',  # э
+        'uni044F': 'я',  # я
         'uni0401': 'E',  # Ё
         'uni0451': 'e',  # ё
-        'uni0419': 'N',  # Й
-        'uni0439': 'n',  # й
+        'uni0419': 'Й',  # Й
+        'uni0439': 'й',  # й
     }
 
     # Iterate over all glyphs in the font
@@ -329,6 +329,42 @@ def perforate_font(
             print(f"  ID: {name_record.nameID}, Platform: {name_record.platformID}, "
                   f"Encoding: {name_record.platEncID}, Language: {name_record.langID}")
     
+    # Get the font family name from the name table
+    for name_record in name_table.names:
+        if name_record.nameID == 6:  # Font Family name
+            family_name = name_record.string.decode('utf-16-be') if isinstance(name_record.string, bytes) else name_record.string
+            break
+    
+    family_name = family_name.split("-")[0]
+    new_name = f"Eco-{family_name}"
+    if dithering_mode == "line":
+        new_name += f"-{line_type}-{curve}"
+        if line_type == "parallel":
+            new_name += f"-{line_width}x{margin}"
+        elif line_type == "random":
+            new_name += f"-{num_random_lines}x{line_width}"
+    elif dithering_mode == "shape":
+        if shape_type == "circle":
+            new_name += f"-C{shape_size}x{margin}"
+        elif shape_type == "rectangle":
+            new_name += f"-R{shape_size}x{margin}"
+    else:
+        new_name += f"-{point_size}x{reduction_percentage}"
+
+    # Create PostScript-compatible name
+    postscript_name = _sanitize_postscript_name(new_name)
+
+    # Store original license information
+    license_info = {}
+    for name_record in name_table.names:
+        if name_record.nameID in [13, 14]:  # License Description and License Info URL
+            try:
+                value = name_record.string.decode('utf-16-be') if isinstance(name_record.string, bytes) else name_record.string
+                license_info[name_record.nameID] = value
+            except UnicodeDecodeError:
+                if debug:
+                    print(f"  Warning: UTF-16-BE decoding failed for license record {name_record.nameID}")
+
     for name_record in name_table.names:
         try:
             if debug:
@@ -339,30 +375,33 @@ def perforate_font(
                 print(f"  Raw string: {name_record.string}")
             
             if name_record.nameID == 1:  # Font Family name      
-                original_name = name_record.string.decode('utf-16-be') if isinstance(name_record.string, bytes) else name_record.string
-                name_record.string = f"{original_name} Eco"
+                name_record.string = new_name
                 if debug:
                     print(f"  Modified family name: {name_record.string}")
             elif name_record.nameID == 4:  # Full font name
-                original_name = name_record.string.decode('utf-16-be') if isinstance(name_record.string, bytes) else name_record.string
-                name_record.string = f"{original_name} Eco"
+                name_record.string = new_name
                 if debug:
                     print(f"  Modified full name: {name_record.string}")
             elif name_record.nameID == 6:  # PostScript name
-                original_name = name_record.string.decode('utf-16-be') if isinstance(name_record.string, bytes) else name_record.string
-                name_record.string = f"{original_name}-Eco"
+                name_record.string = postscript_name
                 if debug:
-                    print(f"  Modified full name: {name_record.string}")
+                    print(f"  Modified PostScript name: {name_record.string}")
+            elif name_record.nameID in [13, 14]:  # License Description and License Info URL
+                # Preserve original license information
+                if name_record.nameID in license_info:
+                    name_record.string = license_info[name_record.nameID]
+                    if debug:
+                        print(f"  Preserved license info: {name_record.string}")
         except UnicodeDecodeError:
             if debug:
                 print(f"  Warning: UTF-16-BE decoding failed for name record {name_record.nameID}")
             # If UTF-16-BE decoding fails, try other encodings or use a default name
             if name_record.nameID == 1:  # Font Family name
-                name_record.string = "Font Eco"
+                name_record.string = new_name
             elif name_record.nameID == 4:  # Full font name
-                name_record.string = "Font Eco"
+                name_record.string = new_name
             elif name_record.nameID == 6:  # PostScript name
-                name_record.string = "Font-Eco"
+                name_record.string = new_name
         except Exception as e:
             if debug:
                 print(f"  Warning: Could not modify font name record {name_record.nameID}: {e}")
@@ -371,3 +410,22 @@ def perforate_font(
     # Save the modified font
     font.save(output_font_path)
     print(f"Perforated font saved to {output_font_path}")
+
+def _sanitize_postscript_name(name: str) -> str:
+    """Sanitize a string to be a valid PostScript name.
+    
+    PostScript names must:
+    - Be limited to 63 characters
+    - Contain only alphanumeric characters and hyphens
+    - Not start with a number
+    - Not contain spaces
+    """
+    # Replace spaces and other invalid characters with hyphens
+    sanitized = ''.join(c if c.isalnum() else '-' for c in name)
+    # Remove consecutive hyphens
+    sanitized = '-'.join(filter(None, sanitized.split('-')))
+    # Ensure it doesn't start with a number
+    if sanitized[0].isdigit():
+        sanitized = 'F' + sanitized
+    # Truncate to 63 characters
+    return sanitized[:63]
