@@ -14,7 +14,7 @@ from fonteco.font_utils import create_subset_font, subset_font_to_glyphs
 def test_subset_perforation_and_rendering():
     """Test subsetting, perforation and rendering of a small set of glyphs."""
     # Input and output paths
-    input_font = "new_fonts/IBMPlexSerif-Regular_subset.ttf"  # Updated to use the correct font
+    input_font = "fonts/TimesNewRoman_subset.ttf"  # Updated to use the correct font
     subset_font = "fonts/test.ttf"
     perforated_font = "test_outputs/test_perforated.ttf"
     output_image = "test_outputs/test_output_rendered.png"

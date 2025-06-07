@@ -50,7 +50,7 @@ test_configs = [
 ]
 
 # Input and output paths
-INPUT_FONT = "new_fonts/IBMPlexSerif-Regular_subset.ttf"
+INPUT_FONT = "fonts/TimesNewRoman_subset.ttf"
 SUBSET_FONT = "fonts/test.ttf"
 DEBUG_DIR = "test_outputs/debug_all_modes"
 TEST_GLYPHS = ['A', 'a', 'B', 'b', ' ']
